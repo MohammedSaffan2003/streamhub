@@ -55,6 +55,11 @@ app.post("/api/login", async (req, res) => {
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
+
+    // Update user's online status
+    user.online = true;
+    await user.save();
+
     res.json({ token });
   } catch (error) {
     res.status(500).send("Server error");
@@ -73,13 +78,20 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Middleware for JWT verification
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const token = req.header("x-auth-token");
   if (!token) return res.status(401).send("Access denied");
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(400).send("User not found");
+    }
+    req.user = {
+      id: decoded.id,
+      username: user.username,
+    };
     next();
   } catch (err) {
     res.status(400).send("Invalid token");
@@ -221,6 +233,21 @@ app.get("/api/online-users", verifyToken, async (req, res) => {
   try {
     const onlineUsers = await User.find({ online: true });
     res.json(onlineUsers);
+  } catch (error) {
+    res.status(500).send("Server error");
+  }
+});
+// Logout endpoint
+app.post("/api/logout", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).send("User not found");
+
+    // Update user's online status
+    user.online = false;
+    await user.save();
+
+    res.send("User logged out");
   } catch (error) {
     res.status(500).send("Server error");
   }
