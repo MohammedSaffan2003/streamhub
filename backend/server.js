@@ -12,6 +12,8 @@ const http = require("http");
 const User = require("./models/User");
 const Video = require("./models/Video");
 const Chat = require("./models/Chat");
+const ChatRoom = require("./models/ChatRoom");
+const ChatMessage = require("./models/ChatMessage");
 
 const app = express();
 const server = http.createServer(app);
@@ -119,8 +121,15 @@ const verifyToken = async (req, res, next) => {
 // User data endpoint
 app.get("/api/user", verifyToken, async (req, res) => {
   try {
-    res.json(req.user);
+    const user = await User.findById(req.user.id).select("-password");
+    res.json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      rewardCoins: user.rewardCoins,
+    });
   } catch (error) {
+    console.error("Error fetching user:", error);
     res.status(500).send("Server error");
   }
 });
@@ -252,15 +261,101 @@ app.post("/api/comment-video", verifyToken, async (req, res) => {
 
 // Real-time chat with Socket.IO
 io.on("connection", (socket) => {
-  console.log("A user connected");
+  console.log("User connected:", socket.id);
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
+  socket.on("user_connected", async (userId) => {
+    try {
+      await User.findByIdAndUpdate(userId, { online: true });
+      socket.broadcast.emit("user_status_changed", { userId, online: true });
+    } catch (error) {
+      console.error("Error updating user status:", error);
+    }
   });
 
-  socket.on("chat message", (msg) => {
-    io.emit("chat message", msg);
+  socket.on("join_room", (roomId) => {
+    socket.join(roomId);
+    console.log("User joined room:", roomId);
   });
+
+  socket.on("leave_room", (roomId) => {
+    socket.leave(roomId);
+    console.log("User left room:", roomId);
+  });
+
+  socket.on("disconnect", async () => {
+    try {
+      const userId = socket.userId;
+      if (userId) {
+        await User.findByIdAndUpdate(userId, { online: false });
+        socket.broadcast.emit("user_status_changed", { userId, online: false });
+      }
+    } catch (error) {
+      console.error("Error updating user status:", error);
+    }
+    console.log("User disconnected:", socket.id);
+  });
+
+  // Authenticate socket connection
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    socket.disconnect();
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+
+    // Join user to their personal room
+    socket.join(decoded.id);
+
+    // Handle private messages
+    socket.on("message", async (messageData) => {
+      try {
+        const { content, recipientId, roomId } = messageData;
+
+        const message = new ChatMessage({
+          content,
+          sender: socket.userId,
+          recipientId,
+          roomId,
+        });
+
+        await message.save();
+
+        if (roomId) {
+          // Group message
+          io.to(roomId).emit("message", {
+            ...message.toObject(),
+            isOwn: false,
+          });
+        } else if (recipientId) {
+          // Private message
+          socket.to(recipientId).emit("message", {
+            ...message.toObject(),
+            isOwn: false,
+          });
+          socket.emit("message", {
+            ...message.toObject(),
+            isOwn: true,
+          });
+        }
+      } catch (error) {
+        console.error("Message error:", error);
+      }
+    });
+
+    socket.on("disconnect", async () => {
+      try {
+        await User.findByIdAndUpdate(socket.userId, { online: false });
+        console.log("User disconnected");
+      } catch (error) {
+        console.error("Disconnect error:", error);
+      }
+    });
+  } catch (error) {
+    socket.disconnect();
+  }
 });
 
 // Online users endpoint
@@ -275,14 +370,8 @@ app.get("/api/online-users", verifyToken, async (req, res) => {
 // Logout endpoint
 app.post("/api/logout", verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).send("User not found");
-
-    // Update user's online status
-    user.online = false;
-    await user.save();
-
-    res.send("User logged out");
+    await User.findByIdAndUpdate(req.user.id, { online: false });
+    res.send("Logged out successfully");
   } catch (error) {
     res.status(500).send("Server error");
   }
@@ -291,11 +380,18 @@ app.post("/api/logout", verifyToken, async (req, res) => {
 // Get videos for specific user
 app.get("/api/videos/user/:userId", verifyToken, async (req, res) => {
   try {
-    console.log("Fetching videos for user:", req.params.userId);
-    const videos = await Video.find({ userId: req.params.userId }).sort({
-      likes: -1,
+    const userId = req.params.userId;
+
+    if (!userId) {
+      return res.status(400).send("User ID is required");
+    }
+
+    // console.log("Fetching videos for user:", userId);
+    const videos = await Video.find({ userId: userId }).sort({
+      createdAt: -1, // Sort by newest first
     });
-    console.log("Found videos:", videos);
+
+    // console.log("Found videos:", videos);
     res.json(videos);
   } catch (error) {
     console.error("Error fetching user videos:", error);
@@ -313,6 +409,305 @@ app.get("/api/videos/:videoId", verifyToken, async (req, res) => {
     res.json(video);
   } catch (error) {
     console.error("Error fetching video:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Create chat room
+app.post("/api/chat/rooms", verifyToken, async (req, res) => {
+  try {
+    const { name, participants } = req.body;
+    const room = new ChatRoom({
+      name,
+      participants: [...participants, req.user.id],
+      createdBy: req.user.id,
+    });
+    await room.save();
+    res.json(room);
+  } catch (error) {
+    res.status(500).send("Error creating chat room");
+  }
+});
+
+// Get chat rooms for user
+app.get("/api/chat/rooms", verifyToken, async (req, res) => {
+  try {
+    const rooms = await ChatRoom.find({
+      participants: req.user.id,
+    }).populate("participants", "username");
+    res.json(rooms);
+  } catch (error) {
+    res.status(500).send("Error fetching chat rooms");
+  }
+});
+
+// Get chat history
+app.get("/api/chat/:roomId", verifyToken, async (req, res) => {
+  try {
+    const messages = await ChatMessage.find({
+      roomId: req.params.roomId,
+    }).populate("sender", "username");
+    res.json(messages);
+  } catch (error) {
+    res.status(500).send("Error fetching chat history");
+  }
+});
+
+// Update video
+app.put("/api/videos/:videoId", verifyToken, async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.videoId);
+
+    if (!video) {
+      return res.status(404).send("Video not found");
+    }
+
+    // Check if the user owns the video
+    if (video.userId.toString() !== req.user.id) {
+      return res.status(403).send("Not authorized to edit this video");
+    }
+
+    const { title, description } = req.body;
+    video.title = title;
+    video.description = description;
+    await video.save();
+
+    res.json(video);
+  } catch (error) {
+    console.error("Error updating video:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Delete video
+app.delete("/api/videos/:videoId", verifyToken, async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.videoId);
+
+    if (!video) {
+      return res.status(404).send("Video not found");
+    }
+
+    // Check if the user owns the video
+    if (video.userId.toString() !== req.user.id) {
+      return res.status(403).send("Not authorized to delete this video");
+    }
+
+    // Use findByIdAndDelete instead of remove()
+    await Video.findByIdAndDelete(req.params.videoId);
+
+    // Also delete the video from Cloudinary if needed
+    if (video.url) {
+      const publicId = video.url.split("/").pop().split(".")[0];
+      try {
+        await cloudinary.uploader.destroy(publicId);
+      } catch (cloudinaryError) {
+        console.error("Error deleting from Cloudinary:", cloudinaryError);
+        // Continue with the response even if Cloudinary delete fails
+      }
+    }
+
+    res.json({ msg: "Video deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting video:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Add comment to video
+app.post("/api/videos/:videoId/comments", verifyToken, async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.videoId);
+    if (!video) {
+      return res.status(404).send("Video not found");
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    const newComment = {
+      userId: req.user.id,
+      username: user.username,
+      comment: req.body.comment,
+      createdAt: new Date(),
+    };
+
+    video.comments.push(newComment);
+    await video.save();
+
+    res.json(newComment);
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Like video (with restriction)
+app.post("/api/videos/:videoId/like", verifyToken, async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.videoId);
+    if (!video) {
+      return res.status(404).send("Video not found");
+    }
+
+    // Check if user has already liked the video
+    if (video.likedBy && video.likedBy.includes(req.user.id)) {
+      return res.status(400).send("You have already liked this video");
+    }
+
+    // Initialize likedBy array if it doesn't exist
+    if (!video.likedBy) {
+      video.likedBy = [];
+    }
+
+    // Add user to likedBy array and increment likes
+    video.likedBy.push(req.user.id);
+    video.likes += 1;
+    await video.save();
+
+    res.json({ likes: video.likes });
+  } catch (error) {
+    console.error("Error liking video:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Get online users
+app.get("/api/users/online", verifyToken, async (req, res) => {
+  try {
+    const onlineUsers = await User.find(
+      { online: true, _id: { $ne: req.user.id } },
+      "username _id"
+    );
+    res.json(onlineUsers);
+  } catch (error) {
+    console.error("Error fetching online users:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Start chat with user
+app.post("/api/chat/start", verifyToken, async (req, res) => {
+  try {
+    const { recipientId } = req.body;
+
+    // Validate recipient exists
+    const recipient = await User.findById(recipientId);
+    if (!recipient) {
+      return res.status(404).send("Recipient user not found");
+    }
+
+    // Check if chat room already exists
+    let room = await ChatRoom.findOne({
+      participants: {
+        $all: [req.user.id, recipientId],
+        $size: 2,
+      },
+    });
+
+    if (!room) {
+      // Create new chat room
+      room = new ChatRoom({
+        participants: [req.user.id, recipientId],
+        lastMessage: null,
+        createdAt: new Date(),
+      });
+      await room.save();
+    }
+
+    // Populate participant information
+    await room.populate("participants", "username");
+
+    res.json(room);
+  } catch (error) {
+    console.error("Error starting chat:", error);
+    if (error.name === "CastError") {
+      return res.status(400).send("Invalid user ID");
+    }
+    res.status(500).send("Server error: " + error.message);
+  }
+});
+
+// Send message
+app.post("/api/chat/message", verifyToken, async (req, res) => {
+  try {
+    const { roomId, content } = req.body;
+
+    const room = await ChatRoom.findById(roomId);
+    if (!room) {
+      return res.status(404).send("Chat room not found");
+    }
+
+    // Verify user is participant
+    if (!room.participants.includes(req.user.id)) {
+      return res.status(403).send("Not authorized");
+    }
+
+    const message = new ChatMessage({
+      roomId,
+      sender: req.user.id,
+      content,
+    });
+
+    await message.save();
+
+    // Update room's last message
+    room.lastMessage = message._id;
+    await room.save();
+
+    // Emit message to room
+    io.to(roomId).emit("new_message", {
+      roomId,
+      message: {
+        ...message.toObject(),
+        sender: { _id: req.user.id, username: req.user.username },
+      },
+    });
+
+    res.json(message);
+  } catch (error) {
+    console.error("Error sending message:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Get user's chat rooms
+app.get("/api/chat/rooms", verifyToken, async (req, res) => {
+  try {
+    const rooms = await ChatRoom.find({ participants: req.user.id })
+      .populate("participants", "username")
+      .populate("lastMessage");
+    res.json(rooms);
+  } catch (error) {
+    console.error("Error fetching chat rooms:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Get chat messages
+app.get("/api/chat/messages/:roomId", verifyToken, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    const room = await ChatRoom.findById(roomId);
+    if (!room) {
+      return res.status(404).send("Chat room not found");
+    }
+
+    // Verify user is participant
+    if (!room.participants.includes(req.user.id)) {
+      return res.status(403).send("Not authorized");
+    }
+
+    const messages = await ChatMessage.find({ roomId })
+      .populate("sender", "username")
+      .sort({ timestamp: 1 });
+
+    res.json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
     res.status(500).send("Server error");
   }
 });

@@ -1,14 +1,14 @@
 // src/components/HomePage.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import ReactPlayer from "react-player";
-import "./HomePage.css"; // Assuming we already have this CSS file for the HomePage
+import VideoCard from "./VideoCard";
+import "./HomePage.css";
 
 const HomePage = () => {
   const [videos, setVideos] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedVideoId, setSelectedVideoId] = useState(null);
-  const [selectedQuality, setSelectedQuality] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -36,6 +36,24 @@ const HomePage = () => {
     }
   };
 
+  const handleLike = async (videoId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        "http://localhost:5000/api/like-video",
+        { videoId },
+        {
+          headers: { "x-auth-token": token },
+        }
+      );
+      // Refresh videos after like
+      const response = await axios.get("http://localhost:5000/api/videos");
+      setVideos(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error("Error liking video:", error);
+    }
+  };
+
   return (
     <div className="homepage-container">
       <div className="search-container">
@@ -55,37 +73,7 @@ const HomePage = () => {
 
       <div className="video-grid">
         {videos.map((video) => (
-          <div key={video._id} className="video-item">
-            <h3>{video.title}</h3>
-
-            {/* Conditionally render thumbnail or player */}
-            {selectedVideoId !== video._id && (
-              <div
-                className="video-thumbnail"
-                onClick={() => setSelectedVideoId(video._id)}
-                style={{ cursor: "pointer" }}
-              >
-                <img
-                  src={video.thumbnailUrl}
-                  alt={`${video.title} thumbnail`}
-                  width="100%"
-                />
-              </div>
-            )}
-
-            {selectedVideoId === video._id && (
-              <>
-                <ReactPlayer
-                  url={video.url}
-                  controls
-                  width="100%"
-                  height="auto"
-                />
-              </>
-            )}
-
-            <p>Likes: {video.likes}</p>
-          </div>
+          <VideoCard key={video._id} video={video} onLike={handleLike} />
         ))}
       </div>
     </div>
