@@ -7,7 +7,7 @@ const Navbar = ({ handleLogout }) => {
   return (
     <nav className="navbar">
       <div className="navbar-logo">
-        <Link to="/">My Video App</Link>
+        <Link to="/">StreamHub</Link>
       </div>
       <div className="navbar-links">
         <Link to="/">Home</Link>
