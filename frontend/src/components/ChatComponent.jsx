@@ -25,35 +25,20 @@ const ChatComponent = () => {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const decoded = jwtDecode(token);
-      socket.emit("user_connected", decoded.id);
-    }
+    if (!currentUser) return;
 
-    socket.on("user_status_changed", ({ userId, online }) => {
-      setOnlineUsers((prev) => {
-        if (online) {
-          // Add user to online list if not already present
-          if (!prev.find((u) => u._id === userId)) {
-            // Fetch the user info if needed
-            fetchOnlineUsers();
-          }
-        } else {
-          // Remove user from online list
-          return prev.filter((u) => u._id !== userId);
-        }
-        return prev;
-      });
+    socket.emit("user_connected", currentUser.id);
+
+    // Listen for online users updates
+    socket.on("online_users_updated", (users) => {
+      // Filter out current user from the list
+      const filteredUsers = users.filter((user) => user._id !== currentUser.id);
+      setOnlineUsers(filteredUsers);
     });
 
+    // Cleanup
     return () => {
-      socket.off("user_status_changed");
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
+      socket.off("online_users_updated");
       // Emit logout when component unmounts
       const token = localStorage.getItem("token");
       if (token) {
@@ -66,30 +51,29 @@ const ChatComponent = () => {
           .catch(console.error);
       }
     };
-  }, []);
-
-  useEffect(() => {
-    fetchOnlineUsers();
-    const interval = setInterval(fetchOnlineUsers, 10000); // Refresh every 10 seconds
-
-    return () => {
-      clearInterval(interval);
-      if (currentRoom) {
-        socket.emit("leave_room", currentRoom._id);
-      }
-    };
-  }, []);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     socket.on("new_message", handleNewMessage);
     return () => socket.off("new_message");
-  }, [messages]);
+  }, [currentRoom?._id]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchOnlineUsers();
+    }
+    return () => {
+      if (currentRoom) {
+        socket.emit("leave_room", currentRoom._id);
+      }
+    };
+  }, [currentUser?.id]);
 
   const fetchOnlineUsers = async () => {
     try {

@@ -19,10 +19,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Allow requests from React app on this port
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
     credentials: true,
+    transports: ["websocket", "polling"],
   },
 });
 
@@ -70,13 +71,17 @@ app.post("/api/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).send("Invalid credentials");
 
+    // Update user's online status
+    user.online = true;
+    await user.save();
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    // Update user's online status
-    user.online = true;
-    await user.save();
+    // Broadcast updated online users list
+    const onlineUsers = await User.find({ online: true }, "username _id");
+    io.emit("online_users_updated", onlineUsers);
 
     res.json({ token });
   } catch (error) {
@@ -259,14 +264,27 @@ app.post("/api/comment-video", verifyToken, async (req, res) => {
   }
 });
 
-// Real-time chat with Socket.IO
+// At the top of the file, add a Map to store socket-user associations
+const userSockets = new Map();
+
+// Update the socket.io connection handling
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("user_connected", async (userId) => {
     try {
+      // Store socket-user association
+      userSockets.set(socket.id, userId);
+      socket.userId = userId;
+
+      // Update user's online status
       await User.findByIdAndUpdate(userId, { online: true });
-      socket.broadcast.emit("user_status_changed", { userId, online: true });
+
+      // Fetch all online users and broadcast the updated list
+      const onlineUsers = await User.find({ online: true }, "username _id");
+
+      // Broadcast to all connected clients
+      io.emit("online_users_updated", onlineUsers);
     } catch (error) {
       console.error("Error updating user status:", error);
     }
@@ -284,10 +302,15 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", async () => {
     try {
-      const userId = socket.userId;
+      const userId = userSockets.get(socket.id);
       if (userId) {
+        // Update user's online status
         await User.findByIdAndUpdate(userId, { online: false });
-        socket.broadcast.emit("user_status_changed", { userId, online: false });
+        userSockets.delete(socket.id);
+
+        // Fetch and broadcast updated online users list
+        const onlineUsers = await User.find({ online: true }, "username _id");
+        io.emit("online_users_updated", onlineUsers);
       }
     } catch (error) {
       console.error("Error updating user status:", error);
