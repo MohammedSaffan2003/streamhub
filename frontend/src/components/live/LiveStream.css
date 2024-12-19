@@ -1,0 +1,61 @@
+.live-stream-container {
+  padding: 80px 20px 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+  min-height: calc(100vh - 100px);
+}
+
+.stream-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.video-container {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.stream-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 20px;
+}
+
+.stream-button,
+.watch-button,
+.stop-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.stream-button {
+  background: #4caf50;
+  color: white;
+}
+
+.watch-button {
+  background: #2196f3;
+  color: white;
+}
+
+.stop-button {
+  background: #f44336;
+  color: white;
+}
+
+.error-message {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+} 

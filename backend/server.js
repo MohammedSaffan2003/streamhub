@@ -14,6 +14,7 @@ const Video = require("./models/Video");
 const Chat = require("./models/Chat");
 const ChatRoom = require("./models/ChatRoom");
 const ChatMessage = require("./models/ChatMessage");
+const liveRoutes = require("./live/liveRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -23,8 +24,9 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
     credentials: true,
-    transports: ["websocket", "polling"],
   },
+  pingTimeout: 60000,
+  allowEIO3: true,
 });
 
 const corsOptions = {
@@ -270,6 +272,14 @@ const userSockets = new Map();
 // Update the socket.io connection handling
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  socket.on("error", (error) => {
+    console.error("Socket error:", error);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("User disconnected:", socket.id, "Reason:", reason);
+  });
 
   socket.on("user_connected", async (userId) => {
     try {
@@ -769,3 +779,6 @@ app.options("*", cors(corsOptions)); // Preflight requests
 // Start the server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Add this with other routes
+app.use("/api/live", liveRoutes);
