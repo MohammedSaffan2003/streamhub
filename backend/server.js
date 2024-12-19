@@ -273,20 +273,19 @@ io.on("connection", (socket) => {
 
   socket.on("user_connected", async (userId) => {
     try {
-      // Store socket-user association
       userSockets.set(socket.id, userId);
       socket.userId = userId;
 
-      // Update user's online status
       await User.findByIdAndUpdate(userId, { online: true });
 
-      // Fetch all online users and broadcast the updated list
-      const onlineUsers = await User.find({ online: true }, "username _id");
+      const onlineUsers = await User.find(
+        { online: true, _id: { $ne: userId } },
+        "username _id"
+      );
 
-      // Broadcast to all connected clients
       io.emit("online_users_updated", onlineUsers);
     } catch (error) {
-      console.error("Error updating user status:", error);
+      console.error("Error in user_connected:", error);
     }
   });
 
@@ -304,18 +303,15 @@ io.on("connection", (socket) => {
     try {
       const userId = userSockets.get(socket.id);
       if (userId) {
-        // Update user's online status
         await User.findByIdAndUpdate(userId, { online: false });
         userSockets.delete(socket.id);
 
-        // Fetch and broadcast updated online users list
         const onlineUsers = await User.find({ online: true }, "username _id");
         io.emit("online_users_updated", onlineUsers);
       }
     } catch (error) {
-      console.error("Error updating user status:", error);
+      console.error("Error in disconnect:", error);
     }
-    console.log("User disconnected:", socket.id);
   });
 
   // Authenticate socket connection
@@ -611,7 +607,7 @@ app.get("/api/users/online", verifyToken, async (req, res) => {
   }
 });
 
-// Start chat with user
+// Start chat
 app.post("/api/chat/start", verifyToken, async (req, res) => {
   try {
     const { recipientId } = req.body;
@@ -619,7 +615,7 @@ app.post("/api/chat/start", verifyToken, async (req, res) => {
     // Validate recipient exists
     const recipient = await User.findById(recipientId);
     if (!recipient) {
-      return res.status(404).send("Recipient user not found");
+      return res.status(404).send("Recipient not found");
     }
 
     // Check if chat room already exists
@@ -631,11 +627,9 @@ app.post("/api/chat/start", verifyToken, async (req, res) => {
     });
 
     if (!room) {
-      // Create new chat room
       room = new ChatRoom({
         participants: [req.user.id, recipientId],
         lastMessage: null,
-        createdAt: new Date(),
       });
       await room.save();
     }
@@ -646,10 +640,7 @@ app.post("/api/chat/start", verifyToken, async (req, res) => {
     res.json(room);
   } catch (error) {
     console.error("Error starting chat:", error);
-    if (error.name === "CastError") {
-      return res.status(400).send("Invalid user ID");
-    }
-    res.status(500).send("Server error: " + error.message);
+    res.status(500).send("Server error");
   }
 });
 
@@ -663,53 +654,44 @@ app.post("/api/chat/message", verifyToken, async (req, res) => {
       return res.status(404).send("Chat room not found");
     }
 
-    // Verify user is participant
     if (!room.participants.includes(req.user.id)) {
       return res.status(403).send("Not authorized");
     }
 
+    const user = await User.findById(req.user.id);
     const message = new ChatMessage({
       roomId,
       sender: req.user.id,
       content,
+      timestamp: new Date(),
     });
 
     await message.save();
-
-    // Update room's last message
     room.lastMessage = message._id;
     await room.save();
 
-    // Emit message to room
+    const messageWithSender = {
+      ...message.toObject(),
+      sender: {
+        _id: user._id,
+        username: user.username,
+      },
+    };
+
+    // Emit to room
     io.to(roomId).emit("new_message", {
       roomId,
-      message: {
-        ...message.toObject(),
-        sender: { _id: req.user.id, username: req.user.username },
-      },
+      message: messageWithSender,
     });
 
-    res.json(message);
+    res.json(messageWithSender);
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).send("Server error");
   }
 });
 
-// Get user's chat rooms
-app.get("/api/chat/rooms", verifyToken, async (req, res) => {
-  try {
-    const rooms = await ChatRoom.find({ participants: req.user.id })
-      .populate("participants", "username")
-      .populate("lastMessage");
-    res.json(rooms);
-  } catch (error) {
-    console.error("Error fetching chat rooms:", error);
-    res.status(500).send("Server error");
-  }
-});
-
-// Get chat messages
+// Get messages for a room
 app.get("/api/chat/messages/:roomId", verifyToken, async (req, res) => {
   try {
     const { roomId } = req.params;
@@ -719,7 +701,6 @@ app.get("/api/chat/messages/:roomId", verifyToken, async (req, res) => {
       return res.status(404).send("Chat room not found");
     }
 
-    // Verify user is participant
     if (!room.participants.includes(req.user.id)) {
       return res.status(403).send("Not authorized");
     }

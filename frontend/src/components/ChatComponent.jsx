@@ -31,30 +31,23 @@ const ChatComponent = () => {
 
     // Listen for online users updates
     socket.on("online_users_updated", (users) => {
-      // Filter out current user from the list
-      const filteredUsers = users.filter((user) => user._id !== currentUser.id);
-      setOnlineUsers(filteredUsers);
+      setOnlineUsers(users);
     });
 
-    // Cleanup
     return () => {
       socket.off("online_users_updated");
-      // Emit logout when component unmounts
-      const token = localStorage.getItem("token");
-      if (token) {
-        axios
-          .post(
-            "http://localhost:5000/api/logout",
-            {},
-            { headers: { "x-auth-token": token } }
-          )
-          .catch(console.error);
-      }
     };
   }, [currentUser?.id]);
 
   useEffect(() => {
-    socket.on("new_message", handleNewMessage);
+    if (!currentRoom) return;
+
+    socket.on("new_message", (data) => {
+      if (data.roomId === currentRoom._id) {
+        setMessages((prev) => [...prev, data.message]);
+      }
+    });
+
     return () => socket.off("new_message");
   }, [currentRoom?._id]);
 
@@ -104,12 +97,13 @@ const ChatComponent = () => {
         socket.emit("leave_room", currentRoom._id);
       }
 
-      setCurrentRoom(response.data);
-      socket.emit("join_room", response.data._id);
+      const newRoom = response.data;
+      setCurrentRoom(newRoom);
+      socket.emit("join_room", newRoom._id);
 
       // Fetch messages for this room
       const messagesResponse = await axios.get(
-        `http://localhost:5000/api/chat/messages/${response.data._id}`,
+        `http://localhost:5000/api/chat/messages/${newRoom._id}`,
         { headers: { "x-auth-token": token } }
       );
       setMessages(messagesResponse.data);
@@ -118,7 +112,7 @@ const ChatComponent = () => {
       setSelectedUser(user);
     } catch (error) {
       console.error("Error starting chat:", error);
-      alert(error.response?.data || "Error starting chat. Please try again.");
+      alert(error.response?.data || "Error starting chat");
     }
   };
 
@@ -128,7 +122,7 @@ const ChatComponent = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post(
+      const response = await axios.post(
         "http://localhost:5000/api/chat/message",
         {
           roomId: currentRoom._id,
@@ -136,9 +130,12 @@ const ChatComponent = () => {
         },
         { headers: { "x-auth-token": token } }
       );
+
+      setMessages((prev) => [...prev, response.data]);
       setMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
+      alert("Failed to send message");
     }
   };
 
