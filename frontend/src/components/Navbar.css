@@ -1,14 +1,16 @@
 .navbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start ;
+  align-items: center;
   background-color: #282c34;
-  padding: 10px 20px;
-  position: sticky; /* Navbar stays at the top */
+  padding: 1rem 2rem;
+  position: fixed;
   top: 0;
-  width: 100vw;
-  z-index: 1000; /* Ensure navbar is always above other content */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .navbar-logo a {
@@ -21,41 +23,29 @@
 .navbar-links {
   display: flex;
   align-items: center;
+  gap: 20px;
 }
 
 .navbar-links a,
 .navbar-links button {
   color: #fff;
   text-decoration: none;
-  margin-left: 20px;
   font-size: 1.1rem;
   transition: color 0.3s ease;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.navbar-links button {
-  background-color: #4caf50;
   padding: 8px 16px;
   border-radius: 4px;
 }
 
-.navbar-links button:hover {
-  background-color: #45a049;
+.navbar-links a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-@media (max-width: 768px) {
-  .navbar {
-      flex-direction: column; /* Stack navbar items on smaller screens */
-  }
+.navbar-links button {
+  background-color: #4caf50;
+  border: none;
+  cursor: pointer;
+}
 
-  .navbar-links {
-      display: flex;
-      margin-top: 10px;
-  }
-
-  .navbar-links a {
-      margin-left: 0; /* Remove margin on smaller screens */
-  }
+.navbar-links button:hover {
+  background-color: #45a049;
 }

@@ -716,6 +716,55 @@ app.get("/api/chat/messages/:roomId", verifyToken, async (req, res) => {
   }
 });
 
+// Update user profile
+app.put("/api/user/update", verifyToken, async (req, res) => {
+  try {
+    const { username, email, currentPassword, newPassword } = req.body;
+
+    // Find user
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).send("Current password is incorrect");
+    }
+
+    // Check if email is already taken by another user
+    if (email !== user.email) {
+      const emailExists = await User.findOne({ email, _id: { $ne: user._id } });
+      if (emailExists) {
+        return res.status(400).send("Email is already in use");
+      }
+    }
+
+    // Update user fields
+    user.username = username;
+    user.email = email;
+
+    // Update password if provided
+    if (newPassword) {
+      user.password = await bcrypt.hash(newPassword, 10);
+    }
+
+    await user.save();
+
+    // Return updated user without password
+    res.json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      rewardCoins: user.rewardCoins,
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).send("Server error");
+  }
+});
+
 app.options("*", cors(corsOptions)); // Preflight requests
 // Start the server
 const PORT = process.env.PORT || 5000;

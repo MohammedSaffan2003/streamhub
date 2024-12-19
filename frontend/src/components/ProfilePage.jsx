@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import VideoCard from "./VideoCard";
 import "./ProfilePage.css";
 import EditVideoModal from "./EditVideoModal";
+import EditProfileModal from "./EditProfileModal";
 
 const ProfilePage = () => {
   const [user, setUser] = useState(null);
@@ -141,14 +142,26 @@ const ProfilePage = () => {
     }
   };
 
+  const handleProfileUpdate = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
   if (!user) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="profile-page">
+    <div className="profile-container">
       <div className="profile-info">
-        <h2>Profile</h2>
+        <div className="profile-header">
+          <h2>Profile</h2>
+          <button
+            className="edit-profile-button"
+            onClick={() => setShowEditModal(true)}
+          >
+            Edit Profile
+          </button>
+        </div>
         <p>Username: {user.username}</p>
         <p>Email: {user.email}</p>
         <p>Reward Coins: {rewardCoins}</p>
@@ -182,10 +195,10 @@ const ProfilePage = () => {
       </div>
 
       {showEditModal && (
-        <EditVideoModal
-          video={editingVideo}
+        <EditProfileModal
+          user={user}
           onClose={() => setShowEditModal(false)}
-          onUpdate={handleUpdate}
+          onUpdate={handleProfileUpdate}
         />
       )}
     </div>

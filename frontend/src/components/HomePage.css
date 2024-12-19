@@ -1,21 +1,16 @@
 .homepage-container {
-  min-height: 100vh; /* Full viewport height */
-  width: 100%; /* Full viewport width */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start; /* Align content at the top */
-  background-color: #f4f4f4;
-  padding: 20px;
+  padding: 80px 20px 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+  min-height: calc(100vh - 100px);
 }
 
 .search-container {
   display: flex;
   justify-content: center;
-  width: 100%;
-  align-items: center;
   gap: 10px;
   margin-bottom: 30px;
+  padding: 0 20px;
 }
 
 .search-input {
@@ -23,7 +18,7 @@
   width: 100%;
   max-width: 500px;
   border-radius: 5px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   font-size: 1rem;
 }
 
@@ -44,10 +39,9 @@
 
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(250px, 1fr)); /* Responsive */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
-  width: 100%;
-  padding: 20px;
+  padding: 0 20px;
 }
 
 .video-item {
