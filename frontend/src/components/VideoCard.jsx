@@ -18,7 +18,9 @@ const VideoCard = ({
 
   const handleEditClick = (e) => {
     e.stopPropagation();
-    onEdit(video);
+    if (onEdit) {
+      onEdit(video);
+    }
   };
 
   const handleDeleteClick = (e) => {

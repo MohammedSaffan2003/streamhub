@@ -11,7 +11,8 @@ const ProfilePage = () => {
   const [videos, setVideos] = useState([]);
   const [rewardCoins, setRewardCoins] = useState(0);
   const [editingVideo, setEditingVideo] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [showVideoEditModal, setShowVideoEditModal] = useState(false);
+  const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,9 +82,9 @@ const ProfilePage = () => {
     }
   };
 
-  const handleEdit = (video) => {
+  const handleVideoEdit = (video) => {
     setEditingVideo(video);
-    setShowEditModal(true);
+    setShowVideoEditModal(true);
   };
 
   const handleDelete = async (videoId) => {
@@ -135,7 +136,7 @@ const ProfilePage = () => {
         }
       );
       setVideos(videosResponse.data);
-      setShowEditModal(false);
+      setShowVideoEditModal(false);
       setEditingVideo(null);
     } catch (error) {
       console.error("Error updating video:", error);
@@ -157,7 +158,7 @@ const ProfilePage = () => {
           <h2>Profile</h2>
           <button
             className="edit-profile-button"
-            onClick={() => setShowEditModal(true)}
+            onClick={() => setShowProfileEditModal(true)}
           >
             Edit Profile
           </button>
@@ -184,7 +185,7 @@ const ProfilePage = () => {
                 key={video._id}
                 video={video}
                 onLike={handleLike}
-                onEdit={handleEdit}
+                onEdit={handleVideoEdit}
                 onDelete={handleDelete}
                 showActions={true}
                 isOwnVideo={true}
@@ -194,10 +195,21 @@ const ProfilePage = () => {
         )}
       </div>
 
-      {showEditModal && (
+      {showVideoEditModal && editingVideo && (
+        <EditVideoModal
+          video={editingVideo}
+          onClose={() => {
+            setShowVideoEditModal(false);
+            setEditingVideo(null);
+          }}
+          onUpdate={handleUpdate}
+        />
+      )}
+
+      {showProfileEditModal && (
         <EditProfileModal
           user={user}
-          onClose={() => setShowEditModal(false)}
+          onClose={() => setShowProfileEditModal(false)}
           onUpdate={handleProfileUpdate}
         />
       )}

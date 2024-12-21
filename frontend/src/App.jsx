@@ -24,8 +24,18 @@ const App = () => {
   }, []);
 
   const handleLogout = () => {
+    // Clear all auth-related data
     localStorage.removeItem("token");
+    localStorage.removeItem("username");
     setIsAuthenticated(false);
+
+    // Disconnect socket if it exists
+    if (window.socket) {
+      window.socket.disconnect();
+    }
+
+    // Clear any other user-related state
+    // Add any additional cleanup needed
   };
 
   const ProtectedRoute = ({ children }) => {

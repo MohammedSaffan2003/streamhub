@@ -389,9 +389,16 @@ app.get("/api/online-users", verifyToken, async (req, res) => {
 // Logout endpoint
 app.post("/api/logout", verifyToken, async (req, res) => {
   try {
+    // Update user's online status
     await User.findByIdAndUpdate(req.user.id, { online: false });
+
+    // Emit user status update to other clients
+    const onlineUsers = await User.find({ online: true }, "username _id");
+    io.emit("online_users_updated", onlineUsers);
+
     res.send("Logged out successfully");
   } catch (error) {
+    console.error("Logout error:", error);
     res.status(500).send("Server error");
   }
 });
