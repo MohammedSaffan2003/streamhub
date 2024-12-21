@@ -114,4 +114,69 @@
 .role-selector button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.leave-confirmation-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.leave-confirmation-modal .modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.leave-confirmation-modal h3 {
+  margin: 0 0 16px;
+  color: #333;
+}
+
+.leave-confirmation-modal p {
+  margin: 0 0 24px;
+  color: #666;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.modal-actions button {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cancel-button {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.confirm-button {
+  background: #dc3545;
+  color: white;
+}
+
+.cancel-button:hover {
+  background: #d5d5d5;
+}
+
+.confirm-button:hover {
+  background: #bb2d3b;
 } 

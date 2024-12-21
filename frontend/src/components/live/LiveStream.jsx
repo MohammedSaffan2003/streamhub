@@ -16,6 +16,7 @@ const LiveStream = () => {
   const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
   const [isJoining, setIsJoining] = useState(false);
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
 
   const cleanupZego = async () => {
     try {
@@ -50,10 +51,11 @@ const LiveStream = () => {
     try {
       if (userRole === "Host") {
         try {
-          await navigator.mediaDevices.getUserMedia({
+          const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true,
           });
+          stream.getTracks().forEach((track) => track.stop());
         } catch (error) {
           console.error("Failed to get media permissions:", error);
           throw new Error(
@@ -100,6 +102,21 @@ const LiveStream = () => {
           logoURL: "",
         },
         sharedLinks: [],
+        showLeaveButton: true,
+        showEndRoomButton: userRole === "Host",
+        onLeaveRoom: () => {
+          handleStopStream();
+        },
+        onEndRoom: () => {
+          handleStopStream();
+        },
+        showLeavingView: true,
+        leavingView: {
+          allowClose: false,
+          afterLeave: () => {
+            handleStopStream();
+          },
+        },
       };
 
       if (userRole === "Host") {
@@ -109,7 +126,6 @@ const LiveStream = () => {
         config.showMyCameraToggleButton = true;
         config.showAudioVideoSettingsButton = true;
         config.showScreenSharingButton = true;
-        config.showLeaveButton = true;
       }
 
       config.onJoinRoom = () => {
@@ -117,10 +133,6 @@ const LiveStream = () => {
           setIsLive(true);
           setActiveStreamer({ userName: username });
         }
-      };
-
-      config.onLeaveRoom = async () => {
-        await handleStopStream();
       };
 
       config.onError = (error) => {
@@ -191,6 +203,10 @@ const LiveStream = () => {
   };
 
   const handleStopStream = async () => {
+    setShowLeaveConfirmation(true);
+  };
+
+  const handleConfirmLeave = async () => {
     if (zegoRef.current) {
       try {
         if (role === "Host" && zegoRef.current.stopPublishingStream) {
@@ -260,6 +276,25 @@ const LiveStream = () => {
           </div>
         )}
       </div>
+      {showLeaveConfirmation && (
+        <div className="leave-confirmation-modal">
+          <div className="modal-content">
+            <h3>Leave Stream?</h3>
+            <p>Are you sure you want to leave the stream?</p>
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowLeaveConfirmation(false)}
+                className="cancel-button"
+              >
+                Cancel
+              </button>
+              <button onClick={handleConfirmLeave} className="confirm-button">
+                Leave Stream
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
