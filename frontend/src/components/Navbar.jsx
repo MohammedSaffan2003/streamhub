@@ -40,6 +40,9 @@ const Navbar = ({ handleLogout }) => {
         <Link to="/profile">Profile</Link>
         <Link to="/upload-video">Upload Video</Link>
         <Link to="/chat">Chat</Link>
+        <Link to="/live" className="go-live-button">
+          Go Live
+        </Link>
         <button onClick={handleLogoutClick}>Logout</button>
       </div>
     </nav>

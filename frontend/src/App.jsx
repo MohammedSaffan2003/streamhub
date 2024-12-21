@@ -14,6 +14,8 @@ import ProfilePage from "./components/ProfilePage";
 import VideoUploadPage from "./components/VideoUploadPage";
 import ChatComponent from "./components/ChatComponent";
 import VideoPage from "./components/VideoPage";
+import LiveStream from "./components/live/LiveStream";
+import { LiveProvider } from "./components/live/LiveContext";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -91,6 +93,16 @@ const App = () => {
           element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
         />
         <Route path="/signup" element={<SignupPage />} />
+        <Route
+          path="/live"
+          element={
+            <ProtectedRoute>
+              <LiveProvider>
+                <LiveStream />
+              </LiveProvider>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="*"
           element={<Navigate to={isAuthenticated ? "/" : "/login"} />}

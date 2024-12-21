@@ -1,0 +1,88 @@
+.live-stream-page {
+  padding: 80px 20px 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+  min-height: calc(100vh - 100px);
+  position: relative;
+  z-index: 1;
+}
+
+.stream-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.stream-container {
+  width: 100%;
+  height: calc(100vh - 200px);
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+}
+
+.streamer-info {
+  padding: 8px 16px;
+  background: #dc3545;
+  color: white;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+/* Override Zego UI styles */
+:root {
+  --zegoui-background-color: transparent !important;
+}
+
+.zego-uikit-prebuilt {
+  background: transparent !important;
+}
+
+.role-selector {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 20px;
+  z-index: 10;
+}
+
+.role-selector button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.host-button {
+  background: #dc3545;
+  color: white;
+}
+
+.audience-button {
+  background: #0d6efd;
+  color: white;
+}
+
+.host-button:hover {
+  background: #bb2d3b;
+}
+
+.audience-button:hover {
+  background: #0b5ed7;
+} 
