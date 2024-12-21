@@ -15,6 +15,7 @@ const LiveStream = () => {
   const [showRoleSelector, setShowRoleSelector] = useState(true);
   const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
+  const [isJoining, setIsJoining] = useState(false);
 
   const cleanupZego = async () => {
     try {
@@ -47,6 +48,20 @@ const LiveStream = () => {
 
   const initializeZego = async (username, userId, userRole) => {
     try {
+      if (userRole === "Host") {
+        try {
+          await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+        } catch (error) {
+          console.error("Failed to get media permissions:", error);
+          throw new Error(
+            "Please allow camera and microphone access to stream"
+          );
+        }
+      }
+
       const appID = parseInt(import.meta.env.VITE_ZEGOCLOUD_APP_ID);
       const serverSecret = import.meta.env.VITE_ZEGOCLOUD_SERVER_SECRET;
       const roomID = "streamRoom1";
@@ -60,8 +75,7 @@ const LiveStream = () => {
       );
 
       if (!containerRef.current) {
-        console.error("Container not found");
-        return;
+        throw new Error("Container not found");
       }
 
       const zp = ZegoUIKitPrebuilt.create(kitToken);
@@ -95,10 +109,10 @@ const LiveStream = () => {
         config.showMyCameraToggleButton = true;
         config.showAudioVideoSettingsButton = true;
         config.showScreenSharingButton = true;
+        config.showLeaveButton = true;
       }
 
       config.onJoinRoom = () => {
-        setShowRoleSelector(false);
         if (userRole === "Host") {
           setIsLive(true);
           setActiveStreamer({ userName: username });
@@ -106,8 +120,7 @@ const LiveStream = () => {
       };
 
       config.onLeaveRoom = async () => {
-        await cleanupZego();
-        navigate("/");
+        await handleStopStream();
       };
 
       config.onError = (error) => {
@@ -120,6 +133,7 @@ const LiveStream = () => {
       console.error("Error initializing Zego:", error);
       setShowRoleSelector(true);
       cleanupZego();
+      throw error;
     }
   };
 
@@ -159,9 +173,35 @@ const LiveStream = () => {
   }, [isInitialized, navigate]);
 
   const handleRoleSelect = async (selectedRole) => {
-    if (!userData) return;
+    if (!userData || isJoining) return;
+    setIsJoining(true);
     setRole(selectedRole);
-    await initializeZego(userData.username, userData.decoded.id, selectedRole);
+    setShowRoleSelector(false);
+    try {
+      await initializeZego(
+        userData.username,
+        userData.decoded.id,
+        selectedRole
+      );
+    } catch (error) {
+      setShowRoleSelector(true);
+      setRole("");
+    }
+    setIsJoining(false);
+  };
+
+  const handleStopStream = async () => {
+    if (zegoRef.current) {
+      try {
+        if (role === "Host" && zegoRef.current.stopPublishingStream) {
+          await zegoRef.current.stopPublishingStream();
+        }
+        await cleanupZego();
+        navigate("/");
+      } catch (error) {
+        console.error("Error stopping stream:", error);
+      }
+    }
   };
 
   if (!userName) {
@@ -173,12 +213,23 @@ const LiveStream = () => {
       <div className="stream-header">
         <h2>{role === "Host" ? "Start Streaming" : "Live Stream"}</h2>
         {activeStreamer && (
-          <div className="streamer-info">Live: {activeStreamer.userName}</div>
+          <div className="streamer-info">
+            <span>Live: {activeStreamer.userName}</span>
+            {role === "Host" && (
+              <button
+                onClick={handleStopStream}
+                className="stop-stream-button"
+                aria-label="Stop streaming"
+              >
+                Stop Stream
+              </button>
+            )}
+          </div>
         )}
       </div>
       <div className="stream-container">
         <div ref={containerRef} className="zego-container" />
-        {showRoleSelector && (
+        {showRoleSelector && !isJoining && (
           <div className="role-selector">
             <form onSubmit={(e) => e.preventDefault()} autoComplete="off">
               <button
@@ -189,8 +240,9 @@ const LiveStream = () => {
                 name="host-button"
                 autoComplete="off"
                 aria-label="Start streaming"
+                disabled={isJoining}
               >
-                Start Streaming
+                {isJoining ? "Starting..." : "Start Streaming"}
               </button>
               <button
                 type="button"
@@ -200,8 +252,9 @@ const LiveStream = () => {
                 name="audience-button"
                 autoComplete="off"
                 aria-label="Watch stream"
+                disabled={isJoining}
               >
-                Watch Stream
+                {isJoining ? "Joining..." : "Watch Stream"}
               </button>
             </form>
           </div>
