@@ -313,68 +313,6 @@ io.on("connection", (socket) => {
       console.error("Error in disconnect:", error);
     }
   });
-
-  // Authenticate socket connection
-  const token = socket.handshake.auth.token;
-  if (!token) {
-    socket.disconnect();
-    return;
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = decoded.id;
-
-    // Join user to their personal room
-    socket.join(decoded.id);
-
-    // Handle private messages
-    socket.on("message", async (messageData) => {
-      try {
-        const { content, recipientId, roomId } = messageData;
-
-        const message = new ChatMessage({
-          content,
-          sender: socket.userId,
-          recipientId,
-          roomId,
-        });
-
-        await message.save();
-
-        if (roomId) {
-          // Group message
-          io.to(roomId).emit("message", {
-            ...message.toObject(),
-            isOwn: false,
-          });
-        } else if (recipientId) {
-          // Private message
-          socket.to(recipientId).emit("message", {
-            ...message.toObject(),
-            isOwn: false,
-          });
-          socket.emit("message", {
-            ...message.toObject(),
-            isOwn: true,
-          });
-        }
-      } catch (error) {
-        console.error("Message error:", error);
-      }
-    });
-
-    socket.on("disconnect", async () => {
-      try {
-        await User.findByIdAndUpdate(socket.userId, { online: false });
-        console.log("User disconnected");
-      } catch (error) {
-        console.error("Disconnect error:", error);
-      }
-    });
-  } catch (error) {
-    socket.disconnect();
-  }
 });
 
 // Online users endpoint
@@ -685,13 +623,13 @@ app.post("/api/chat/message", verifyToken, async (req, res) => {
       },
     };
 
-    // Emit to room
-    io.to(roomId).emit("new_message", {
+    // Broadcast to everyone in the room
+    io.in(roomId).emit("new_message", {
       roomId,
       message: messageWithSender,
     });
 
-    res.json(messageWithSender);
+    res.json({ success: true });
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).send("Server error");

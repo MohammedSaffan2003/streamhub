@@ -4,7 +4,13 @@ import io from "socket.io-client";
 import "./ChatComponent.css";
 import { jwtDecode } from "jwt-decode";
 
-const socket = io("http://localhost:5000");
+// Create socket connection outside component
+const socket = io("http://localhost:5000", {
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  reconnectionAttempts: 5,
+});
 
 const ChatComponent = () => {
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -27,29 +33,31 @@ const ChatComponent = () => {
   useEffect(() => {
     if (!currentUser) return;
 
+    const token = localStorage.getItem("token");
+    socket.auth = { token };
+    socket.connect();
+
     socket.emit("user_connected", currentUser.id);
 
-    // Listen for online users updates
     socket.on("online_users_updated", (users) => {
       setOnlineUsers(users);
     });
 
-    return () => {
-      socket.off("online_users_updated");
-    };
-  }, [currentUser?.id]);
-
-  useEffect(() => {
-    if (!currentRoom) return;
-
+    // Listen for new messages globally
     socket.on("new_message", (data) => {
-      if (data.roomId === currentRoom._id) {
-        setMessages((prev) => [...prev, data.message]);
-      }
+      setMessages((prev) => {
+        // Check if message already exists to prevent duplicates
+        const messageExists = prev.some((msg) => msg._id === data.message._id);
+        if (messageExists) return prev;
+        return [...prev, data.message];
+      });
     });
 
-    return () => socket.off("new_message");
-  }, [currentRoom?._id]);
+    return () => {
+      socket.off("online_users_updated");
+      socket.off("new_message");
+    };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -122,7 +130,7 @@ const ChatComponent = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.post(
+      await axios.post(
         "http://localhost:5000/api/chat/message",
         {
           roomId: currentRoom._id,
@@ -131,26 +139,11 @@ const ChatComponent = () => {
         { headers: { "x-auth-token": token } }
       );
 
-      setMessages((prev) => [...prev, response.data]);
+      // Clear input - don't update messages here, socket will handle it
       setMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
       alert("Failed to send message");
-    }
-  };
-
-  const handleNewMessage = (data) => {
-    if (data.roomId === currentRoom?._id) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          ...data.message,
-          sender: {
-            _id: data.message.sender._id,
-            username: data.message.sender.username,
-          },
-        },
-      ]);
     }
   };
 
