@@ -8,70 +8,42 @@ import "./LiveStream.css";
 const LiveStream = () => {
   const { isLive, setIsLive, activeStreamer, setActiveStreamer } = useLive();
   const zegoRef = useRef(null);
+  const containerRef = useRef(null);
   const [userName, setUserName] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
   const [role, setRole] = useState("");
+  const [showRoleSelector, setShowRoleSelector] = useState(true);
+  const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const init = async () => {
-      if (isInitialized) return;
-
-      const token = localStorage.getItem("token");
-      if (token) {
-        try {
-          const decoded = jwtDecode(token);
-          const response = await fetch("http://localhost:5000/api/user", {
-            headers: {
-              "x-auth-token": token,
-            },
-          });
-          const userData = await response.json();
-          setUserName(userData.username);
-
-          const container = document.querySelector("#live-streaming-container");
-          if (container) {
-            const roleButtons = document.createElement("div");
-            roleButtons.className = "role-selector";
-            roleButtons.innerHTML = `
-              <button class="host-button">Start Streaming</button>
-              <button class="audience-button">Watch Stream</button>
-            `;
-            container.appendChild(roleButtons);
-
-            roleButtons
-              .querySelector(".host-button")
-              .addEventListener("click", () => {
-                setRole("Host");
-                container.removeChild(roleButtons);
-                initializeZego(userData.username, decoded.id, "Host");
-              });
-
-            roleButtons
-              .querySelector(".audience-button")
-              .addEventListener("click", () => {
-                setRole("Audience");
-                container.removeChild(roleButtons);
-                initializeZego(userData.username, decoded.id, "Audience");
-              });
-          }
-
-          setIsInitialized(true);
-        } catch (error) {
-          console.error("Error initializing:", error);
-        }
-      }
-    };
-
-    init();
-
-    return () => {
+  const cleanupZego = async () => {
+    try {
       if (zegoRef.current) {
-        zegoRef.current.destroy();
-        setIsInitialized(false);
+        if (typeof zegoRef.current.leaveRoom === "function") {
+          await zegoRef.current.leaveRoom();
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (typeof zegoRef.current.destroy === "function") {
+          zegoRef.current.destroy();
+        }
+        zegoRef.current = null;
       }
+    } catch (error) {
+      console.error("Error during cleanup:", error);
+    } finally {
+      setIsInitialized(false);
+      setIsLive(false);
+      setActiveStreamer(null);
+      setRole("");
+      setShowRoleSelector(true);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      cleanupZego();
     };
-  }, [isInitialized]);
+  }, []);
 
   const initializeZego = async (username, userId, userRole) => {
     try {
@@ -87,61 +59,109 @@ const LiveStream = () => {
         username
       );
 
+      if (!containerRef.current) {
+        console.error("Container not found");
+        return;
+      }
+
       const zp = ZegoUIKitPrebuilt.create(kitToken);
       zegoRef.current = zp;
 
       const config = {
-        container: document.querySelector("#live-streaming-container"),
+        container: containerRef.current,
         scenario: {
           mode: ZegoUIKitPrebuilt.LiveStreaming,
           config: {
-            role:
-              userRole === "Host"
-                ? ZegoUIKitPrebuilt.Host
-                : ZegoUIKitPrebuilt.Audience,
+            role: userRole === "Host" ? 1 : 0,
           },
         },
         showUserList: true,
         showRoomDetailsButton: true,
+        showTextChat: true,
+        showUserJoinAndLeave: true,
+        maxUsers: 50,
+        layout: "Grid",
+        showLayoutButton: true,
+        branding: {
+          logoURL: "",
+        },
+        sharedLinks: [],
       };
 
       if (userRole === "Host") {
-        config.showPreJoinView = true;
-        config.showLeavingView = true;
-        config.showCameraButton = true;
-        config.showMicrophoneButton = true;
+        config.turnOnCameraWhenJoining = true;
+        config.turnOnMicrophoneWhenJoining = true;
+        config.showMyMicrophoneToggleButton = true;
+        config.showMyCameraToggleButton = true;
+        config.showAudioVideoSettingsButton = true;
         config.showScreenSharingButton = true;
       }
 
-      config.onUserCountUpdate = (count) => {
-        console.log("User count:", count);
-      };
-      config.onUserJoin = (users) => {
-        console.log("Users joined:", users);
-      };
-      config.onUserLeave = (users) => {
-        console.log("Users left:", users);
-      };
-      config.onLiveStart = (user) => {
-        setIsLive(true);
-        setActiveStreamer(user);
-      };
-      config.onLiveEnd = () => {
-        setIsLive(false);
-        setActiveStreamer(null);
-      };
-      config.onLeaveRoom = () => {
-        if (zegoRef.current) {
-          zegoRef.current.destroy();
-          setIsInitialized(false);
+      config.onJoinRoom = () => {
+        setShowRoleSelector(false);
+        if (userRole === "Host") {
+          setIsLive(true);
+          setActiveStreamer({ userName: username });
         }
+      };
+
+      config.onLeaveRoom = async () => {
+        await cleanupZego();
         navigate("/");
+      };
+
+      config.onError = (error) => {
+        console.error("Zego error:", error);
+        cleanupZego();
       };
 
       await zp.joinRoom(config);
     } catch (error) {
       console.error("Error initializing Zego:", error);
+      setShowRoleSelector(true);
+      cleanupZego();
     }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      if (isInitialized) return;
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      try {
+        const decoded = jwtDecode(token);
+        const response = await fetch("http://localhost:5000/api/user", {
+          headers: {
+            "x-auth-token": token,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+
+        const data = await response.json();
+        setUserName(data.username);
+        setUserData({ ...data, decoded });
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("Error initializing:", error);
+        navigate("/login");
+      }
+    };
+
+    init();
+  }, [isInitialized, navigate]);
+
+  const handleRoleSelect = async (selectedRole) => {
+    if (!userData) return;
+    setRole(selectedRole);
+    await initializeZego(userData.username, userData.decoded.id, selectedRole);
   };
 
   if (!userName) {
@@ -156,7 +176,37 @@ const LiveStream = () => {
           <div className="streamer-info">Live: {activeStreamer.userName}</div>
         )}
       </div>
-      <div id="live-streaming-container" className="stream-container" />
+      <div className="stream-container">
+        <div ref={containerRef} className="zego-container" />
+        {showRoleSelector && (
+          <div className="role-selector">
+            <form onSubmit={(e) => e.preventDefault()} autoComplete="off">
+              <button
+                type="button"
+                className="host-button"
+                onClick={() => handleRoleSelect("Host")}
+                id="host-button"
+                name="host-button"
+                autoComplete="off"
+                aria-label="Start streaming"
+              >
+                Start Streaming
+              </button>
+              <button
+                type="button"
+                className="audience-button"
+                onClick={() => handleRoleSelect("Audience")}
+                id="audience-button"
+                name="audience-button"
+                autoComplete="off"
+                aria-label="Watch stream"
+              >
+                Watch Stream
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

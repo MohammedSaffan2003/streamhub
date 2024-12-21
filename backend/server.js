@@ -75,13 +75,13 @@ app.post("/api/login", async (req, res) => {
     user.online = true;
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    // Broadcast updated online users list
-    const onlineUsers = await User.find({ online: true }, "username _id");
-    io.emit("online_users_updated", onlineUsers);
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "24h", // Token expires in 24 hours
+      }
+    );
 
     res.json({ token });
   } catch (error) {

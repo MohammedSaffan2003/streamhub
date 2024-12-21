@@ -24,6 +24,14 @@
   z-index: 2;
 }
 
+.zego-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 .streamer-info {
   padding: 8px 16px;
   background: #dc3545;
@@ -41,23 +49,20 @@
   color: #666;
 }
 
-/* Override Zego UI styles */
-:root {
-  --zegoui-background-color: transparent !important;
-}
-
-.zego-uikit-prebuilt {
-  background: transparent !important;
-}
-
 .role-selector {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.role-selector form {
   display: flex;
   gap: 20px;
-  z-index: 10;
 }
 
 .role-selector button {

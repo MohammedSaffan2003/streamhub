@@ -16,28 +16,44 @@ import ChatComponent from "./components/ChatComponent";
 import VideoPage from "./components/VideoPage";
 import LiveStream from "./components/live/LiveStream";
 import { LiveProvider } from "./components/live/LiveContext";
+import { jwtDecode } from "jwt-decode";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsAuthenticated(!!token); // Check token existence
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const decoded = jwtDecode(token);
+          // Check if token is expired
+          if (decoded.exp * 1000 < Date.now()) {
+            localStorage.removeItem("token");
+            setIsAuthenticated(false);
+            return;
+          }
+          setIsAuthenticated(true);
+        } catch (error) {
+          localStorage.removeItem("token");
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   const handleLogout = () => {
-    // Clear all auth-related data
     localStorage.removeItem("token");
     localStorage.removeItem("username");
     setIsAuthenticated(false);
 
-    // Disconnect socket if it exists
     if (window.socket) {
       window.socket.disconnect();
     }
-
-    // Clear any other user-related state
-    // Add any additional cleanup needed
   };
 
   const ProtectedRoute = ({ children }) => {
