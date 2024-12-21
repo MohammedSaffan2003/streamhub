@@ -21,17 +21,37 @@ const LiveStream = () => {
   const cleanupZego = async () => {
     try {
       if (zegoRef.current) {
-        if (typeof zegoRef.current.leaveRoom === "function") {
-          await zegoRef.current.leaveRoom();
+        try {
+          const localTracks = zegoRef.current.getLocalTracks?.();
+          if (localTracks) {
+            localTracks.forEach((track) => track.stop());
+          }
+        } catch (e) {
+          console.warn("Error stopping tracks:", e);
         }
+
+        if (zegoRef.current.status?.isInRoom) {
+          try {
+            await zegoRef.current.leaveRoom();
+          } catch (e) {
+            console.warn("Error leaving room:", e);
+          }
+        }
+
         await new Promise((resolve) => setTimeout(resolve, 500));
-        if (typeof zegoRef.current.destroy === "function") {
-          zegoRef.current.destroy();
+
+        try {
+          if (zegoRef.current?.destroy) {
+            await zegoRef.current.destroy();
+          }
+        } catch (e) {
+          console.warn("Error destroying instance:", e);
         }
+
         zegoRef.current = null;
       }
     } catch (error) {
-      console.error("Error during cleanup:", error);
+      console.warn("Cleanup warning:", error);
     } finally {
       setIsInitialized(false);
       setIsLive(false);
@@ -51,16 +71,39 @@ const LiveStream = () => {
     try {
       if (userRole === "Host") {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
+          const permissions = await navigator.permissions.query({
+            name: "camera",
           });
-          stream.getTracks().forEach((track) => track.stop());
+
+          if (permissions.state === "denied") {
+            throw new Error("Camera permission denied");
+          }
+
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+            },
+          });
+
+          stream.getTracks().forEach((track) => {
+            track.stop();
+          });
         } catch (error) {
-          console.error("Failed to get media permissions:", error);
-          throw new Error(
-            "Please allow camera and microphone access to stream"
-          );
+          console.error("Media permission error:", error);
+          if (
+            error.name === "NotAllowedError" ||
+            error.name === "PermissionDeniedError"
+          ) {
+            throw new Error(
+              "Please allow camera and microphone access in your browser settings to stream"
+            );
+          }
+          throw error;
         }
       }
 
@@ -105,6 +148,12 @@ const LiveStream = () => {
         showLeaveButton: true,
         showEndRoomButton: userRole === "Host",
         onLeaveRoom: () => {
+          if (zegoRef.current) {
+            const localTracks = zegoRef.current.getLocalTracks?.();
+            if (localTracks) {
+              localTracks.forEach((track) => track.stop());
+            }
+          }
           handleStopStream();
         },
         onEndRoom: () => {
@@ -117,16 +166,48 @@ const LiveStream = () => {
             handleStopStream();
           },
         },
+        enableCamera: userRole === "Host",
+        enableMicrophone: userRole === "Host",
+        showMyCameraToggleButton: userRole === "Host",
+        showMyMicrophoneToggleButton: userRole === "Host",
+        turnOnCameraWhenJoining: false,
+        turnOnMicrophoneWhenJoining: false,
+        showAudioVideoSettingsButton: userRole === "Host",
+        cameraDeviceConfig: {
+          facingMode: "user",
+          mirror: false,
+        },
+        onDeviceError: (error) => {
+          console.warn("Device error:", error);
+          if (error.code === 1103064) {
+            alert("Please allow camera and microphone access to stream");
+          }
+        },
+        onScreenSharingError: (error) => {
+          if (error.code === 1103042) {
+            console.warn("Screen sharing cancelled by user");
+          } else {
+            console.error("Screen sharing error:", error);
+          }
+        },
+        videoConfig: {
+          resolution: {
+            width: 1280,
+            height: 720,
+          },
+          bitrate: 1500,
+          frameRate: 30,
+          mirror: false,
+        },
+        screenSharingConfig: {
+          resolution: {
+            width: 1920,
+            height: 1080,
+          },
+          bitrate: 2000,
+          frameRate: 30,
+        },
       };
-
-      if (userRole === "Host") {
-        config.turnOnCameraWhenJoining = true;
-        config.turnOnMicrophoneWhenJoining = true;
-        config.showMyMicrophoneToggleButton = true;
-        config.showMyCameraToggleButton = true;
-        config.showAudioVideoSettingsButton = true;
-        config.showScreenSharingButton = true;
-      }
 
       config.onJoinRoom = () => {
         if (userRole === "Host") {
@@ -137,14 +218,23 @@ const LiveStream = () => {
 
       config.onError = (error) => {
         console.error("Zego error:", error);
-        cleanupZego();
+        if (error.code >= 1000) {
+          cleanupZego();
+        }
+      };
+
+      config.onConnectionStateChanged = (state) => {
+        console.log("Connection state:", state);
+        if (state === "DISCONNECTED") {
+          cleanupZego();
+        }
       };
 
       await zp.joinRoom(config);
     } catch (error) {
-      console.error("Error initializing Zego:", error);
+      console.error("Initialization error:", error);
       setShowRoleSelector(true);
-      cleanupZego();
+      await cleanupZego();
       throw error;
     }
   };
