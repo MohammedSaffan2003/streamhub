@@ -14,6 +14,7 @@ const Video = require("./models/Video");
 const Chat = require("./models/Chat");
 const ChatRoom = require("./models/ChatRoom");
 const ChatMessage = require("./models/ChatMessage");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 const server = http.createServer(app);
@@ -710,7 +711,37 @@ app.put("/api/user/update", verifyToken, async (req, res) => {
   }
 });
 
+// Replace the token generation endpoint with a simpler version
+app.post("/api/zego/token", verifyToken, async (req, res) => {
+  try {
+    const { role, roomId } = req.body;
+
+    if (!process.env.ZEGOCLOUD_APP_ID || !process.env.ZEGOCLOUD_SERVER_SECRET) {
+      throw new Error("Zego credentials not configured");
+    }
+
+    // Just send the credentials to frontend
+    res.json({
+      appID: process.env.ZEGOCLOUD_APP_ID,
+      serverSecret: process.env.ZEGOCLOUD_SERVER_SECRET,
+      userID: req.user.id,
+      userName: req.user.username,
+      roomID: roomId || "streamRoom1",
+    });
+  } catch (error) {
+    console.error("Error in token endpoint:", error);
+    res.status(500).json({
+      error: "Server error",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
 app.options("*", cors(corsOptions)); // Preflight requests
 // Start the server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Add error handler as the last middleware
+app.use(errorHandler);

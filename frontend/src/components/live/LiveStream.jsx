@@ -5,6 +5,21 @@ import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import "./LiveStream.css";
 
+const generateZegoToken = (appID, serverSecret, roomID, userID, userName) => {
+  try {
+    return ZegoUIKitPrebuilt.generateKitTokenForTest(
+      parseInt(appID),
+      serverSecret,
+      roomID,
+      userID,
+      userName
+    );
+  } catch (error) {
+    console.error("Error generating token:", error);
+    throw error;
+  }
+};
+
 const LiveStream = () => {
   const { isLive, setIsLive, activeStreamer, setActiveStreamer } = useLive();
   const zegoRef = useRef(null);
@@ -107,16 +122,33 @@ const LiveStream = () => {
         }
       }
 
-      const appID = parseInt(import.meta.env.VITE_ZEGOCLOUD_APP_ID);
-      const serverSecret = import.meta.env.VITE_ZEGOCLOUD_SERVER_SECRET;
-      const roomID = "streamRoom1";
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/zego/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify({
+          role: userRole,
+          roomId: "streamRoom1",
+        }),
+      });
 
-      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to get streaming token");
+      }
+
+      const { appID, serverSecret, roomID, userID, userName } =
+        await response.json();
+
+      const kitToken = generateZegoToken(
         appID,
         serverSecret,
         roomID,
-        userId,
-        username
+        userID,
+        userName
       );
 
       if (!containerRef.current) {
@@ -233,6 +265,9 @@ const LiveStream = () => {
       await zp.joinRoom(config);
     } catch (error) {
       console.error("Initialization error:", error);
+      alert(
+        error.message || "Failed to initialize streaming. Please try again."
+      );
       setShowRoleSelector(true);
       await cleanupZego();
       throw error;
