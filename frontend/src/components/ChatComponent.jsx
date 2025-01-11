@@ -21,6 +21,7 @@ const ChatComponent = () => {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -147,11 +148,29 @@ const ChatComponent = () => {
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   if (loading) return <div>Loading...</div>;
 
   return (
     <div className="chat-container">
-      <div className="online-users">
+      <button
+        className={`toggle-sidebar ${sidebarOpen ? "open" : ""}`}
+        onClick={toggleSidebar}
+        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+      >
+        <span className="toggle-icon">{sidebarOpen ? "←" : "→"}</span>
+        {!sidebarOpen && (
+          <>
+            <span>Users</span>
+            <span className="user-count">{onlineUsers.length}</span>
+          </>
+        )}
+      </button>
+
+      <div className={`online-users ${sidebarOpen ? "open" : ""}`}>
         <h3>Online Users</h3>
         {onlineUsers.map((user) => (
           <div
@@ -166,27 +185,29 @@ const ChatComponent = () => {
         ))}
       </div>
 
-      <div className="chat-area">
+      <div className={`chat-area ${sidebarOpen ? "sidebar-open" : ""}`}>
         {selectedUser ? (
           <>
             <div className="chat-header">
               <h3>Chat with {selectedUser.username}</h3>
             </div>
-            <div className="messages-container">
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`message ${
-                    msg.sender._id === currentUser?.id ? "sent" : "received"
-                  }`}
-                >
-                  <div className="message-content">{msg.content}</div>
-                  <div className="message-time">
-                    {new Date(msg.timestamp).toLocaleTimeString()}
+            <div className="messages-wrapper">
+              <div className="messages-container">
+                {messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`message ${
+                      msg.sender._id === currentUser?.id ? "sent" : "received"
+                    }`}
+                  >
+                    <div className="message-content">{msg.content}</div>
+                    <div className="message-time">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </div>
                   </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
             <form onSubmit={sendMessage} className="message-form">
               <input
