@@ -1,0 +1,24 @@
+.files-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.files-header {
+  margin-bottom: 30px;
+}
+
+.files-header h1 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.upload-section {
+  margin-bottom: 30px;
+}
+
+@media (max-width: 768px) {
+  .files-page {
+    padding: 10px;
+  }
+} 
