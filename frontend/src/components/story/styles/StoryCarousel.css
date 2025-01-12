@@ -1,0 +1,85 @@
+.story-carousel-container {
+  padding: 20px;
+  background: #f5f5f5;
+}
+
+.story-carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 20px;
+  padding: 10px 0;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.story-item {
+  flex: 0 0 200px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.story-item:hover {
+  transform: scale(1.05);
+}
+
+.story-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.story-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.story-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.story-item:hover .story-overlay {
+  opacity: 1;
+}
+
+.play-icon {
+  font-size: 48px;
+  color: white;
+}
+
+.view-count {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.story-title {
+  margin: 10px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+@media (max-width: 768px) {
+  .story-item {
+    flex: 0 0 150px;
+  }
+
+  .story-thumbnail {
+    height: 225px;
+  }
+} 

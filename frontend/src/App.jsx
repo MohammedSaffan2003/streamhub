@@ -15,6 +15,7 @@ import VideoUploadPage from "./components/VideoUploadPage";
 import ChatComponent from "./components/ChatComponent";
 import VideoPage from "./components/VideoPage";
 import LiveStream from "./components/live/LiveStream";
+import FilesPage from "./pages/FilesPage";
 import { LiveProvider } from "./components/live/LiveContext";
 import { jwtDecode } from "jwt-decode";
 
@@ -116,6 +117,14 @@ const App = () => {
               <LiveProvider>
                 <LiveStream />
               </LiveProvider>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/files"
+          element={
+            <ProtectedRoute>
+              <FilesPage />
             </ProtectedRoute>
           }
         />

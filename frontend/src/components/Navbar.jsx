@@ -1,11 +1,13 @@
 // src/components/Navbar.jsx
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import "./Navbar.css"; // Assuming we will create a separate CSS file for Navbar
+import "./Navbar.css";
 
-const Navbar = ({ handleLogout }) => {
+const Navbar = ({ handleLogout, isAuthenticated }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isActive = (path) => location.pathname === path;
 
   const handleLogoutClick = async () => {
     try {
@@ -39,7 +41,18 @@ const Navbar = ({ handleLogout }) => {
         <Link to="/">Home</Link>
         <Link to="/profile">Profile</Link>
         <Link to="/upload-video">Upload Video</Link>
-        <Link to="/chat">Chat</Link>
+        <Link
+          to="/chat"
+          className={`nav-link ${isActive("/chat") ? "active" : ""}`}
+        >
+          Chat
+        </Link>
+        <Link
+          to="/stories"
+          className={`nav-link ${isActive("/stories") ? "active" : ""}`}
+        >
+          Stories
+        </Link>
         <Link to="/live" className="go-live-button">
           Go Live
         </Link>

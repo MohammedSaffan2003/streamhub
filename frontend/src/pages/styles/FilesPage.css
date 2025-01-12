@@ -1,0 +1,45 @@
+.files-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 80px auto 20px;
+  min-height: calc(100vh - 100px);
+}
+
+.files-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.files-header h1 {
+  margin: 0;
+  color: #333;
+}
+
+.upload-button {
+  padding: 10px 20px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.upload-button:hover {
+  background: #1565c0;
+}
+
+@media (max-width: 768px) {
+  .files-page {
+    padding: 15px;
+  }
+
+  .files-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+} 
