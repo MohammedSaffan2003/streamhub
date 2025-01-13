@@ -40,6 +40,7 @@ const Navbar = ({ handleLogout }) => {
         <Link to="/profile">Profile</Link>
         <Link to="/upload-video">Upload Video</Link>
         <Link to="/files">Files</Link>
+        <Link to="/articles">Articles</Link>
         <Link to="/chat">Chat</Link>
         <Link to="/live" className="go-live-button">
           Go Live

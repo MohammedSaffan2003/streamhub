@@ -18,6 +18,8 @@ import LiveStream from "./components/live/LiveStream";
 import { LiveProvider } from "./components/live/LiveContext";
 import { jwtDecode } from "jwt-decode";
 import FilesPage from "./pages/FilesPage";
+import ArticlesPage from "./pages/ArticlesPage";
+import ArticleView from "./components/articles/ArticleView";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -63,76 +65,94 @@ const App = () => {
 
   return (
     <Router>
-      <Navbar handleLogout={handleLogout} isAuthenticated={isAuthenticated} />
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/upload-video"
-          element={
-            <ProtectedRoute>
-              <VideoUploadPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              <ChatComponent />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/video/:videoId"
-          element={
-            <ProtectedRoute>
-              <VideoPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/login"
-          element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
-        />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route
-          path="/live"
-          element={
-            <ProtectedRoute>
-              <LiveProvider>
-                <LiveStream />
-              </LiveProvider>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/files"
-          element={
-            <ProtectedRoute>
-              <FilesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="*"
-          element={<Navigate to={isAuthenticated ? "/" : "/login"} />}
-        />
-      </Routes>
+      <div className="app">
+        {isAuthenticated && <Navbar handleLogout={handleLogout} />}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upload-video"
+            element={
+              <ProtectedRoute>
+                <VideoUploadPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <ChatComponent />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video/:videoId"
+            element={
+              <ProtectedRoute>
+                <VideoPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/login"
+            element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
+          />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route
+            path="/live"
+            element={
+              <ProtectedRoute>
+                <LiveProvider>
+                  <LiveStream />
+                </LiveProvider>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/files"
+            element={
+              <ProtectedRoute>
+                <FilesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/articles"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <ArticlesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/articles/:id"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <ArticleView />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="*"
+            element={<Navigate to={isAuthenticated ? "/" : "/login"} />}
+          />
+        </Routes>
+      </div>
     </Router>
   );
 };
