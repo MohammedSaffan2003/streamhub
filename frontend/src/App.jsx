@@ -17,6 +17,7 @@ import VideoPage from "./components/VideoPage";
 import LiveStream from "./components/live/LiveStream";
 import { LiveProvider } from "./components/live/LiveContext";
 import { jwtDecode } from "jwt-decode";
+import FilesPage from "./pages/FilesPage";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -116,6 +117,14 @@ const App = () => {
               <LiveProvider>
                 <LiveStream />
               </LiveProvider>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/files"
+          element={
+            <ProtectedRoute>
+              <FilesPage />
             </ProtectedRoute>
           }
         />

@@ -15,6 +15,7 @@ const Chat = require("./models/Chat");
 const ChatRoom = require("./models/ChatRoom");
 const ChatMessage = require("./models/ChatMessage");
 const errorHandler = require("./middleware/errorHandler");
+const fileRoutes = require("./routes/file");
 
 const app = express();
 const server = http.createServer(app);
@@ -29,10 +30,11 @@ const io = new Server(server, {
 });
 
 const corsOptions = {
-  origin: "http://localhost:5173", // Allow requests from React app on this port
-  methods: "GET,POST,PUT,DELETE", // Allowed HTTP methods
-  allowedHeaders: "Content-Type,Authorization,x-auth-token", // Include x-auth-token
-  credentials: true, // Allow cookies to be sent (if needed)
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+  credentials: true,
+  maxAge: 600,
 };
 
 app.use(cors(corsOptions));
@@ -738,6 +740,9 @@ app.post("/api/zego/token", verifyToken, async (req, res) => {
   }
 });
 
+// Routes
+app.use("/api/files", fileRoutes);
+
 app.options("*", cors(corsOptions)); // Preflight requests
 // Start the server
 const PORT = process.env.PORT || 5000;
@@ -745,3 +750,12 @@ server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // Add error handler as the last middleware
 app.use(errorHandler);
+
+// Add this after your routes
+app.use((err, req, res, next) => {
+  console.error("Global error handler:", err);
+  res.status(500).json({
+    error: "Internal server error",
+    details: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
+});
