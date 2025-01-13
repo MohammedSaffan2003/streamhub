@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import axios from "axios";
 import FileCard from "./FileCard";
 import "./styles/FileList.css";
 
-const FileList = () => {
+const FileList = forwardRef((props, ref) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,6 +76,10 @@ const FileList = () => {
     }
   };
 
+  React.useImperativeHandle(ref, () => ({
+    refreshFiles
+  }));
+
   return (
     <div className="file-list">
       <div className="search-bar">
@@ -102,6 +106,6 @@ const FileList = () => {
       )}
     </div>
   );
-};
+});
 
 export default FileList;

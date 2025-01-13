@@ -93,7 +93,9 @@ const FileUpload = ({ onUploadComplete }) => {
       setName("");
       setDescription("");
       setProgress(0);
-      onUploadComplete?.(response.data);
+      if (onUploadComplete) {
+        onUploadComplete(response.data);
+      }
     } catch (error) {
       console.error("Error uploading file:", error);
       console.error("Error details:", error.response);
