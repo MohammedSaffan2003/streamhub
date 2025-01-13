@@ -1,5 +1,5 @@
 const File = require("../models/File");
-const cloudinary = require("../config/cloudinary");
+const { cloudinary, generateUrl } = require("../config/cloudinary");
 const fs = require("fs").promises;
 
 exports.uploadFile = async (req, res) => {
@@ -11,16 +11,13 @@ exports.uploadFile = async (req, res) => {
     const { name, description } = req.body;
 
     try {
-      console.log("File path:", req.file.path);
-      console.log("File details:", req.file);
-
-      // Upload to Cloudinary
       const result = await cloudinary.uploader.upload(req.file.path, {
         resource_type: "raw",
         folder: "files",
+        access_mode: "public",
+        use_filename: true,
       });
 
-      // Delete the local file after upload
       await fs.unlink(req.file.path);
 
       const newFile = new File({
@@ -36,8 +33,6 @@ exports.uploadFile = async (req, res) => {
       await newFile.save();
       res.status(201).json(newFile);
     } catch (uploadError) {
-      console.error("Cloudinary upload error:", uploadError);
-      // Clean up local file if upload fails
       if (req.file && req.file.path) {
         try {
           await fs.unlink(req.file.path);
@@ -49,11 +44,7 @@ exports.uploadFile = async (req, res) => {
     }
   } catch (error) {
     console.error("Error uploading file:", error);
-    res.status(500).json({
-      error: "Error uploading file",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+    res.status(500).json({ error: "Error uploading file" });
   }
 };
 
@@ -77,10 +68,28 @@ exports.listFiles = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const validFiles = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const result = await cloudinary.api.resource(file.cloudinaryId, {
+            resource_type: "raw",
+          });
+          return {
+            ...file.toObject(),
+            url: result.secure_url,
+          };
+        } catch (error) {
+          await File.deleteOne({ _id: file._id });
+          return null;
+        }
+      })
+    );
+
+    const filteredFiles = validFiles.filter((file) => file !== null);
     const total = await File.countDocuments(searchQuery);
 
     res.json({
-      files,
+      files: filteredFiles,
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalFiles: total,

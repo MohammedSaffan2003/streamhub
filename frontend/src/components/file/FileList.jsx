@@ -10,9 +10,16 @@ const FileList = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  const refreshFiles = async () => {
+    setFiles([]);
+    setPage(1);
+    setLoading(true);
+    await fetchFiles();
+  };
+
   useEffect(() => {
-    fetchFiles();
-  }, [page, searchQuery]);
+    refreshFiles();
+  }, []);
 
   const fetchFiles = async () => {
     try {
@@ -57,7 +64,7 @@ const FileList = () => {
           headers: { "x-auth-token": localStorage.getItem("token") },
         }
       );
-      setFiles((prev) => prev.filter((file) => file._id !== fileId));
+      await refreshFiles();
     } catch (error) {
       console.error("Error deleting file:", error);
     }
