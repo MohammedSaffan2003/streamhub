@@ -26,8 +26,8 @@
 }
 
 .search-button {
-  background: #1976d2;
-  width: 19%;
+  width: 120px;
+  min-width: fit-content;
   color: white;
   padding: 0 20px;
   border: none;
@@ -37,7 +37,9 @@
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  background: #1976d2;
 }
 
 .search-button:hover {
@@ -96,7 +98,6 @@
   
   .search-button {
     width: 100%;
-    justify-content: center;
     padding: 12px;
   }
 } 

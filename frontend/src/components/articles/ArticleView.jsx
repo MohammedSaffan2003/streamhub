@@ -62,7 +62,7 @@ const ArticleView = () => {
         <h1>{article.title}</h1>
 
         <div className="article-meta">
-          <span className="author">By {article.author.name}</span>
+          <span className="author">By {article.author?.name || 'Anonymous Author'}</span>
           <span className="date">
             {new Date(article.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',

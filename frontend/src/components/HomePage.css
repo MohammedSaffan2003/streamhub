@@ -23,7 +23,8 @@
 }
 
 .search-button {
-  width : 8%;
+  width: 120px;
+  min-width: fit-content;
   padding: 10px 20px;
   background-color: #4caf50;
   color: #fff;
@@ -32,10 +33,20 @@
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .search-button:hover {
   background-color: #45a049;
+}
+
+/* Add responsive styles */
+@media (max-width: 768px) {
+  .search-button {
+    width: 100px;
+  }
 }
 
 .video-grid {

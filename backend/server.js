@@ -16,6 +16,7 @@ const ChatRoom = require("./models/ChatRoom");
 const ChatMessage = require("./models/ChatMessage");
 const errorHandler = require("./middleware/errorHandler");
 const fileRoutes = require("./routes/file");
+const articleRoutes = require('./routes/articles');
 
 const app = express();
 const server = http.createServer(app);
@@ -742,6 +743,7 @@ app.post("/api/zego/token", verifyToken, async (req, res) => {
 
 // Routes
 app.use("/api/files", fileRoutes);
+app.use('/api/articles', articleRoutes);
 
 app.options("*", cors(corsOptions)); // Preflight requests
 // Start the server
