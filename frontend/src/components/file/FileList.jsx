@@ -53,7 +53,12 @@ const FileList = forwardRef((props, ref) => {
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
     setPage(1);
+    refreshFiles();
   };
 
   const handleDelete = async (fileId) => {
@@ -82,14 +87,21 @@ const FileList = forwardRef((props, ref) => {
 
   return (
     <div className="file-list">
-      <div className="search-bar">
+      <form className="search-bar" onSubmit={handleSearchSubmit}>
         <input
           type="text"
           placeholder="Search files..."
           value={searchQuery}
           onChange={handleSearch}
         />
-      </div>
+        <button 
+          type="submit" 
+          className="search-button"
+          disabled={loading}
+        >
+          <span>🔍</span> {loading ? 'Searching...' : 'Search'}
+        </button>
+      </form>
 
       <div className="file-grid">
         {files.map((file) => (

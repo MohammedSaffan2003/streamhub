@@ -57,8 +57,10 @@ exports.listFiles = async (req, res) => {
       userId: req.user.id,
       ...(query && {
         $or: [
+          { name: { $regex: query.split('').join('.*'), $options: "i" } },
+          { description: { $regex: query.split('').join('.*'), $options: "i" } },
           { name: { $regex: query, $options: "i" } },
-          { description: { $regex: query, $options: "i" } },
+          { description: { $regex: query, $options: "i" } }
         ],
       }),
     };
