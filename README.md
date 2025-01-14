@@ -1,6 +1,6 @@
 # StreamHub - Live Streaming and Video Platform
 
-StreamHub is a full-stack web application that enables users to live stream, upload videos, chat, and interact with other users in real-time. Built with the MERN stack (MongoDB, Express.js, React., Node.js) and integrated with ZegoCloud for live streaming capabilities.
+StreamHub is a full-stack web application that enables users to live stream, upload videos, share files, publish articles, and interact with other users in real-time. Built with the MERN stack (MongoDB, Express.js, React, Node.js) and integrated with ZegoCloud for live streaming capabilities.
 
 ## Features
 
@@ -19,12 +19,32 @@ StreamHub is a full-stack web application that enables users to live stream, upl
 - Video categorization
 - User-specific video galleries
 
+### File Management
+
+- File upload and sharing
+- Support for PDF and DOC files
+- File preview functionality
+- File search capabilities
+- Personal file management in profile
+- Public file sharing with all users
+- Secure file storage with Cloudinary
+
+### Articles System
+
+- Article creation with rich text editor
+- Image support in articles
+- Like and comment functionality
+- Author attribution
+- Article listing and search
+- Interactive user engagement
+
 ### User Management
 
 - User authentication and authorization
 - Profile management
 - Profile customization
 - Secure JWT-based sessions
+- Personal content management
 
 ### Chat System
 
@@ -41,6 +61,7 @@ StreamHub is a full-stack web application that enables users to live stream, upl
 - React Router for navigation
 - ZegoCloud UI Kit for streaming
 - Socket.io-client for real-time features
+- React-Quill for rich text editing
 - JWT for authentication
 - CSS for styling
 
@@ -54,6 +75,7 @@ Express.js
 - JWT for authentication
 - Cloudinary for media storage
 - Bcrypt for password hashing
+- Multer for file upload handling
 
 ## Prerequisites
 
@@ -141,6 +163,24 @@ npm run dev
 - GET `/api/videos` - Get all videos
 - GET `/api/videos/:id` - Get specific video
 - DELETE `/api/videos/:id` - Delete video
+
+### File Management
+
+- POST `/api/files/upload-file` - Upload file
+- GET `/api/files/list-files` - Get all files
+- GET `/api/files/user-files` - Get user's files
+- GET `/api/files/file/:id` - Get specific file
+- DELETE `/api/files/delete-file/:id` - Delete file
+
+### Article Management
+
+- POST `/api/articles/create` - Create article
+- GET `/api/articles/list` - Get all articles
+- GET `/api/articles/:id` - Get specific article
+- PUT `/api/articles/:id` - Update article
+- DELETE `/api/articles/:id` - Delete article
+- POST `/api/articles/:id/like` - Like/unlike article
+- POST `/api/articles/:id/comment` - Comment on article
 
 ### Live Streaming
 
