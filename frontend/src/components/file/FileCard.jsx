@@ -23,7 +23,7 @@ const getFileIcon = (fileType) => {
   }
 };
 
-const FileCard = ({ file }) => {
+const FileCard = ({ file, onDelete, showDeleteButton = false }) => {
   const [showViewer, setShowViewer] = useState(false);
 
   const handleDownload = () => {
@@ -32,6 +32,12 @@ const FileCard = ({ file }) => {
 
   const handleView = () => {
     setShowViewer(true);
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this file?')) {
+      onDelete(file._id);
+    }
   };
 
   return (
@@ -44,6 +50,7 @@ const FileCard = ({ file }) => {
           <p className="file-meta">
             {(file.size / (1024 * 1024)).toFixed(2)} MB •
             {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+            {file.uploadedBy && <span> • Uploaded by {file.uploadedBy}</span>}
           </p>
         </div>
         <div className="file-actions">
@@ -53,6 +60,11 @@ const FileCard = ({ file }) => {
           <button onClick={handleView} className="read-btn">
             👀 View
           </button>
+          {showDeleteButton && (
+            <button onClick={handleDelete} className="delete-btn">
+              🗑️ Delete
+            </button>
+          )}
         </div>
       </div>
 

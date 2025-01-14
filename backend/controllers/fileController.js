@@ -54,7 +54,6 @@ exports.listFiles = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const searchQuery = {
-      userId: req.user.id,
       ...(query && {
         $or: [
           { name: { $regex: query.split('').join('.*'), $options: "i" } },
@@ -66,6 +65,7 @@ exports.listFiles = async (req, res) => {
     };
 
     const files = await File.find(searchQuery)
+      .populate('userId', 'username')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -79,6 +79,7 @@ exports.listFiles = async (req, res) => {
           return {
             ...file.toObject(),
             url: result.secure_url,
+            uploadedBy: file.userId.username
           };
         } catch (error) {
           await File.deleteOne({ _id: file._id });
@@ -141,5 +142,35 @@ exports.getFileById = async (req, res) => {
   } catch (error) {
     console.error("Error fetching file:", error);
     res.status(500).json({ error: "Error fetching file" });
+  }
+};
+
+exports.getUserFiles = async (req, res) => {
+  try {
+    const files = await File.find({ userId: req.user.id })
+      .sort({ createdAt: -1 });
+
+    const validFiles = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const result = await cloudinary.api.resource(file.cloudinaryId, {
+            resource_type: "raw",
+          });
+          return {
+            ...file.toObject(),
+            url: result.secure_url
+          };
+        } catch (error) {
+          await File.deleteOne({ _id: file._id });
+          return null;
+        }
+      })
+    );
+
+    const filteredFiles = validFiles.filter((file) => file !== null);
+    res.json(filteredFiles);
+  } catch (error) {
+    console.error("Error fetching user files:", error);
+    res.status(500).json({ error: "Error fetching user files" });
   }
 };

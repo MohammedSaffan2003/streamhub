@@ -5,6 +5,7 @@ import VideoCard from "./VideoCard";
 import "./ProfilePage.css";
 import EditVideoModal from "./EditVideoModal";
 import EditProfileModal from "./EditProfileModal";
+import FileCard from "./file/FileCard";
 
 const ProfilePage = () => {
   const [user, setUser] = useState(null);
@@ -13,6 +14,8 @@ const ProfilePage = () => {
   const [editingVideo, setEditingVideo] = useState(null);
   const [showVideoEditModal, setShowVideoEditModal] = useState(false);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('videos');
+  const [userFiles, setUserFiles] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -58,6 +61,24 @@ const ProfilePage = () => {
 
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'files') {
+      fetchUserFiles();
+    }
+  }, [activeTab]);
+
+  const fetchUserFiles = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/files/user-files', {
+        headers: { 'x-auth-token': token }
+      });
+      setUserFiles(response.data);
+    } catch (error) {
+      console.error('Error fetching user files:', error);
+    }
+  };
 
   const handleLike = async (videoId) => {
     try {
@@ -147,6 +168,18 @@ const ProfilePage = () => {
     setUser(updatedUser);
   };
 
+  const handleFileDelete = async (fileId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:5000/api/files/delete-file/${fileId}`, {
+        headers: { 'x-auth-token': token }
+      });
+      await fetchUserFiles(); // Refresh the files list
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
+  };
+
   if (!user) {
     return <div>Loading...</div>;
   }
@@ -174,26 +207,59 @@ const ProfilePage = () => {
         </Link>
       </div>
 
-      <div className="user-videos">
-        <h3>Your Videos</h3>
-        {videos.length === 0 ? (
-          <p>No videos uploaded yet</p>
-        ) : (
-          <div className="video-grid">
-            {videos.map((video) => (
-              <VideoCard
-                key={video._id}
-                video={video}
-                onLike={handleLike}
-                onEdit={handleVideoEdit}
-                onDelete={handleDelete}
-                showActions={true}
-                isOwnVideo={true}
+      <div className="profile-tabs">
+        <button 
+          className={`tab-button ${activeTab === 'videos' ? 'active' : ''}`}
+          onClick={() => setActiveTab('videos')}
+        >
+          Your Videos
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'files' ? 'active' : ''}`}
+          onClick={() => setActiveTab('files')}
+        >
+          Your Files
+        </button>
+      </div>
+
+      {activeTab === 'videos' ? (
+        <div className="user-videos">
+          <h3>Your Videos</h3>
+          {videos.length === 0 ? (
+            <p>No videos uploaded yet</p>
+          ) : (
+            <div className="video-grid">
+              {videos.map((video) => (
+                <VideoCard
+                  key={video._id}
+                  video={video}
+                  onLike={handleLike}
+                  onEdit={handleVideoEdit}
+                  onDelete={handleDelete}
+                  showActions={true}
+                  isOwnVideo={true}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="user-files">
+          <div className="file-grid">
+            {userFiles.map(file => (
+              <FileCard
+                key={file._id}
+                file={file}
+                onDelete={handleFileDelete}
+                showDeleteButton={true}
               />
             ))}
           </div>
-        )}
-      </div>
+          {userFiles.length === 0 && (
+            <p className="no-files">No files uploaded yet</p>
+          )}
+        </div>
+      )}
 
       {showVideoEditModal && editingVideo && (
         <EditVideoModal

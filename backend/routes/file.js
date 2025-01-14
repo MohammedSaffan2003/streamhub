@@ -53,6 +53,7 @@ router.post(
 router.get("/list-files", verifyToken, fileController.listFiles);
 router.get("/file/:id", verifyToken, fileController.getFileById);
 router.delete("/delete-file/:id", verifyToken, fileController.deleteFile);
+router.get("/user-files", verifyToken, fileController.getUserFiles);
 
 // Add this after your routes
 router.use((error, req, res, next) => {
