@@ -46,7 +46,9 @@ const articleSchema = new mongoose.Schema({
   }],
   comments: [commentSchema]
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Add text index for search functionality

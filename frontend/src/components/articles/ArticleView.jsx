@@ -118,7 +118,7 @@ const ArticleView = () => {
         <h1>{article.title}</h1>
 
         <div className="article-meta">
-          <span className="author">By {article.author?.name || 'Anonymous'}</span>
+          <span className="author">By {article.author?.name || article.author?.username || 'Anonymous'}</span>
           <span className="date">
             {new Date(article.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',
@@ -159,7 +159,7 @@ const ArticleView = () => {
             {article.comments.map((comment, index) => (
               <div key={index} className="comment">
                 <div className="comment-header">
-                  <strong>{comment.user?.name}</strong>
+                  <strong>{comment.user?.name || comment.user?.username || 'Anonymous'}</strong>
                   <span className="comment-date">
                     {new Date(comment.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',

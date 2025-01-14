@@ -47,12 +47,13 @@ exports.listArticles = async (req, res) => {
     }
 
     const articles = await Article.find(query)
-      .populate('author', 'name')
-      .populate('comments.user', 'name')
-      .populate('likes', 'name')
+      .populate('author', 'username name')
+      .populate('comments.user', 'username name')
+      .populate('likes', 'username name')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const total = await Article.countDocuments(query);
     const hasMore = total > skip + articles.length;
@@ -71,9 +72,10 @@ exports.listArticles = async (req, res) => {
 exports.getArticle = async (req, res) => {
   try {
     const article = await Article.findById(req.params.id)
-      .populate('author', 'name')
-      .populate('comments.user', 'name')
-      .populate('likes', 'name');
+      .populate('author', 'username name')
+      .populate('comments.user', 'username name')
+      .populate('likes', 'username name')
+      .lean();
 
     if (!article) {
       return res.status(404).json({ error: 'Article not found' });
@@ -209,8 +211,10 @@ exports.addComment = async (req, res) => {
 
     // Fetch the updated article with populated user data
     const updatedArticle = await Article.findById(req.params.id)
-      .populate('author', 'name')
-      .populate('comments.user', 'name');
+      .populate('author', 'username name')
+      .populate('comments.user', 'username name')
+      .populate('likes', 'username name')
+      .lean();
 
     res.json(updatedArticle);
   } catch (error) {
