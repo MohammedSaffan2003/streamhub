@@ -134,7 +134,9 @@ const VideoPage = () => {
               placeholder="Add a comment..."
               required
             />
-            <button type="submit">Post</button>
+            <button type="submit" id="post-button">
+              Post
+            </button>
           </form>
           <div className="comments-list">
             {video.comments.map((comment, index) => (

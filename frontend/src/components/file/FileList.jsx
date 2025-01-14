@@ -82,7 +82,7 @@ const FileList = forwardRef((props, ref) => {
   };
 
   React.useImperativeHandle(ref, () => ({
-    refreshFiles
+    refreshFiles,
   }));
 
   return (
@@ -94,12 +94,13 @@ const FileList = forwardRef((props, ref) => {
           value={searchQuery}
           onChange={handleSearch}
         />
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="search-button"
+          id="search-button"
           disabled={loading}
         >
-          <span>🔍</span> {loading ? 'Searching...' : 'Search'}
+          <span>🔍</span> {loading ? "Searching..." : "Search"}
         </button>
       </form>
 

@@ -156,6 +156,11 @@
   font-size: 1rem;
 }
 
+#post-button {
+  width: auto;
+  min-width: 100px;
+}
+
 .comment-form button {
   padding: 0 24px;
   background: #1976d2;
