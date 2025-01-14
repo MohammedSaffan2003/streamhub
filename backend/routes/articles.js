@@ -26,5 +26,6 @@ router.get('/:id', verifyToken, articleController.getArticle);
 router.put('/:id', verifyToken, upload.single('image'), articleController.updateArticle);
 router.delete('/:id', verifyToken, articleController.deleteArticle);
 router.post('/:id/like', verifyToken, articleController.likeArticle);
+router.post('/:id/comment', verifyToken, articleController.addComment);
 
 module.exports = router; 

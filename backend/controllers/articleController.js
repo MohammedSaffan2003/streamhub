@@ -48,6 +48,8 @@ exports.listArticles = async (req, res) => {
 
     const articles = await Article.find(query)
       .populate('author', 'name')
+      .populate('comments.user', 'name')
+      .populate('likes', 'name')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -70,7 +72,8 @@ exports.getArticle = async (req, res) => {
   try {
     const article = await Article.findById(req.params.id)
       .populate('author', 'name')
-      .populate('comments.user', 'name');
+      .populate('comments.user', 'name')
+      .populate('likes', 'name');
 
     if (!article) {
       return res.status(404).json({ error: 'Article not found' });
@@ -147,22 +150,71 @@ exports.deleteArticle = async (req, res) => {
 
 exports.likeArticle = async (req, res) => {
   try {
+    const article = await Article.findById(req.params.id)
+      .populate('likes', 'name');
+      
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    const userId = req.user.id;
+    const likeIndex = article.likes.findIndex(like => like._id.toString() === userId);
+    const isLiked = likeIndex !== -1;
+
+    if (isLiked) {
+      // Remove like
+      article.likes.splice(likeIndex, 1);
+    } else {
+      // Add like
+      article.likes.push(userId);
+    }
+
+    await article.save();
+
+    // Get updated article with populated likes
+    const updatedArticle = await Article.findById(article._id)
+      .populate('likes', 'name');
+
+    res.json({
+      likes: updatedArticle.likes,
+      liked: !isLiked,
+      likesCount: updatedArticle.likes.length
+    });
+  } catch (error) {
+    console.error('Error liking article:', error);
+    res.status(500).json({ error: 'Error liking article' });
+  }
+};
+
+exports.addComment = async (req, res) => {
+  try {
     const article = await Article.findById(req.params.id);
     if (!article) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
-    const liked = article.likes.includes(req.user.id);
-    if (liked) {
-      article.likes = article.likes.filter(id => id.toString() !== req.user.id);
-    } else {
-      article.likes.push(req.user.id);
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Comment text is required' });
     }
 
+    const comment = {
+      user: req.user.id,
+      text: text.trim(),
+      createdAt: new Date()
+    };
+
+    article.comments.push(comment);
     await article.save();
-    res.json({ likes: article.likes.length, liked: !liked });
+
+    // Fetch the updated article with populated user data
+    const updatedArticle = await Article.findById(req.params.id)
+      .populate('author', 'name')
+      .populate('comments.user', 'name');
+
+    res.json(updatedArticle);
   } catch (error) {
-    console.error('Error liking article:', error);
-    res.status(500).json({ error: 'Error liking article' });
+    console.error('Error adding comment:', error);
+    res.status(500).json({ error: 'Error adding comment' });
   }
 }; 

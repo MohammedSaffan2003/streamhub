@@ -136,7 +136,8 @@
 
 .comment-form button {
   padding: 8px 24px;
-  width: 12%;
+  width: auto;
+  min-width: 100px;
   background: #1976d2;
   color: white;
   border: none;
@@ -200,5 +201,13 @@
   .quality-controls {
     bottom: 40px;
     right: 10px;
+  }
+
+  .comment-form {
+    flex-direction: column;
+  }
+  
+  .comment-form button {
+    width: 100%;
   }
 } 
