@@ -16,13 +16,13 @@ const ChatRoom = require("./models/ChatRoom");
 const ChatMessage = require("./models/ChatMessage");
 const errorHandler = require("./middleware/errorHandler");
 const fileRoutes = require("./routes/file");
-const articleRoutes = require('./routes/articles');
+const articleRoutes = require("./routes/articles");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: process.env.BACKEND_URL || "http://localhost:5173",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
     credentials: true,
@@ -31,7 +31,7 @@ const io = new Server(server, {
 });
 
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: process.env.BACKEND_URL || "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
   credentials: true,
@@ -743,7 +743,7 @@ app.post("/api/zego/token", verifyToken, async (req, res) => {
 
 // Routes
 app.use("/api/files", fileRoutes);
-app.use('/api/articles', articleRoutes);
+app.use("/api/articles", articleRoutes);
 
 app.options("*", cors(corsOptions)); // Preflight requests
 // Start the server
