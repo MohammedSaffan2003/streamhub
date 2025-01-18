@@ -2,6 +2,8 @@
 
 StreamHub is a full-stack web application that enables users to live stream, upload videos, share files, publish articles, and interact with other users in real-time. Built with the MERN stack (MongoDB, Express.js, React, Node.js) and integrated with ZegoCloud for live streaming capabilities.
 
+This is built for desktop  screen sizes only, so kindly open in desktop screens
+
 ## Features
 
 ### Live Streaming
