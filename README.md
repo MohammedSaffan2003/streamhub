@@ -4,6 +4,9 @@ StreamHub is a full-stack web application that enables users to live stream, upl
 
 This is built for desktop  screen sizes only, so kindly open in desktop screens
 
+- Hosted Link : https://msjstreamhub.netlify.app
+- Youtube Demo Link : https://www.youtube.com/watch?v=65UvMF9-K-g
+
 ## Features
 
 ### Live Streaming
